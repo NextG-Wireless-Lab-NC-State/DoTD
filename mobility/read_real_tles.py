@@ -25,24 +25,50 @@ def extract_planes(str_filename):
 
 	for i in range(0,len(Lines),3):
 		tle_second_line = []
-
+		# print Lines[i].strip("\n").strip(), Lines[i+2].strip("\n")
 		for val in Lines[i+2].strip("\n").split(" "):
 			if val != "":
 				tle_second_line.append(val)
 
 		Long_of_the_ascending_node = int(round(float(tle_second_line[3])))
 		vals = Lines[i].strip("\n").strip()
+		# vals = (Lines[i].strip("\n").strip(), Lines[i+2].strip("\n"))
 		if str(Long_of_the_ascending_node) in starlink_planes.keys():
 			if "VISORSAT" not in vals:
 				starlink_planes[str(Long_of_the_ascending_node)].append(vals)
 		else:
 			if "VISORSAT" not in vals:
+				# print vals
 				unassigned_satellites.append({"sat": vals, "Long_of_the_ascending_node": Long_of_the_ascending_node})
 
 	return {
 			"Planes": starlink_planes,
 			"Unassigned": unassigned_satellites
 			}
+
+def sort_satellites_within_plane(cur_planes, satellites_by_name, t):
+	for value in cur_planes.keys():
+		visited_sats = []
+		first_sat = satellites_by_name[str(cur_planes[value][0])]
+		visited_sats.append(first_sat.name)
+		for i in range(1,len(cur_planes[value])):
+			min_dist = 1000000000000000
+			next_hop = -1
+			for sats in cur_planes[value]:
+				next_sat = satellites_by_name[str(sats)]
+				if next_sat.name not in visited_sats:
+					min_d = distance_between_two_satellites(first_sat, next_sat,t)
+					if min_d < min_dist:
+						next_hop = next_sat
+						min_dist = min_d
+
+			if next_hop != -1:
+				# print first_sat, next_hop, min_dist
+				first_sat = next_hop
+				visited_sats.append(first_sat.name)
+
+		cur_planes[value] = visited_sats
+	return cur_planes
 
 def resolve_unassigned_satellites(unassigned_satellites, current_planes, satellites, t):
 	for sat in unassigned_satellites:
@@ -64,15 +90,30 @@ def resolve_unassigned_satellites(unassigned_satellites, current_planes, satelli
 
 	return current_planes
 
-satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
-satellites_by_name = {sat.name: sat for sat in satellites}
-planes = extract_planes("starlink_tles.txt")
+# satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+# satellites_by_name = {sat.name: sat for sat in satellites}
+# planes = extract_planes("starlink_tles.txt")
+#
+# cur_planes = planes["Planes"]
+# print len(planes["Unassigned"])
+# ts = load.timescale()
+# t = ts.now()
 
-ts = load.timescale()
-t = ts.now()
-current_planes = resolve_unassigned_satellites(planes["Unassigned"], planes["Planes"], satellites_by_name, t)
+# sorted_planes = sort_satellites_within_plane(cur_planes, satellites_by_name, t)
+# for keys in sorted_planes.keys():
+# 	print keys
+# 	for values in sorted_planes[keys]:
+# 		print values
 
-for val in current_planes.keys():
-	print val, len(current_planes[val])
-	# for sat in current_planes[val]:
-	# 	print sat
+# for val in planes["Planes"].keys():
+# 	print val
+# 	for a in planes["Planes"][val]:
+# 		print a
+# ts = load.timescale()
+# t = ts.now()
+# current_planes = resolve_unassigned_satellites(planes["Unassigned"], planes["Planes"], satellites_by_name, t)
+
+# for val in current_planes.keys():
+# 	print val, len(current_planes[val])
+# 	# for sat in current_planes[val]:
+# 	# 	print sat

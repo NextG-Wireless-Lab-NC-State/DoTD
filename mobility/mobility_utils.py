@@ -38,7 +38,7 @@ def distance_between_two_satellites(satellite1, satellite2, t):
 
     return (position2 - position1).distance().m
 
-def graph_add_ISLs(G, n_orbits, n_sats_per_orbit, isl_config):
+def graph_add_ISLs(G, satellites, current_planes, n_orbits, n_sats_per_orbit, isl_config):
     if isl_config == "SAME_ORBIT_AND_GRID_ON_EDGE_SATELLITES_ONLY":
         for i in range(n_orbits):
             for j in range(n_sats_per_orbit):
@@ -52,6 +52,9 @@ def graph_add_ISLs(G, n_orbits, n_sats_per_orbit, isl_config):
                 if j % n_sats_per_orbit == 0 or j % (n_sats_per_orbit - 1) == 0:
                     sat_adjacent_orbit = ((i + 1) % n_orbits) * n_sats_per_orbit + (j % n_sats_per_orbit)
                     G.add_edge(sat, sat_adjacent_orbit, weight=1)
+
+    # if isl_config == "BASED_ON_DISTANCE_MAX_FOUR_ISL_PER_SAT":
+
     return G
 
 def graph_add_GSLs(G, satellites, ground_stations, t, number_of_threads, association_criteria):
