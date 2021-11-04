@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 import bellmanford as bf
 import itertools
 import copy
+import collections
 
 import sys
-sys.path.append("../")
-from mobility.mobility_utils import *
+from mobility_utils import *
 
 def extract_planes(str_filename):
 	unassigned_satellites = []
@@ -90,15 +90,36 @@ def resolve_unassigned_satellites(unassigned_satellites, current_planes, satelli
 
 	return current_planes
 
+def label_satellites_properly(sorted_planes_by_values, num_of_satellites):
+	starlink_planes = {2 : [], 7 : [], 12 : [], 17 : [], 22 : [], 27 : [], 32 : [], 37 : [], 42 : [], 47 : [], 52 : [],57 : [],
+	62 : [], 67 : [], 72 : [], 77 : [], 82 : [], 87 : [], 92 : [], 97 : [], 102 : [], 107 : [], 112 : [], 117 : [],
+	122 : [], 127 : [], 132 : [], 137 : [], 142 : [], 147 : [], 152 : [], 157 : [], 162 : [], 167 : [], 172 : [], 177 : [],
+	182 : [], 187 : [], 192 : [], 197 : [], 202 : [], 207 : [], 212 : [], 217 : [], 222 : [], 227 : [], 232 : [], 237 : [],
+	242 : [], 247 : [], 252 : [], 257 : [], 262 : [], 267 : [], 272 : [], 277 : [], 282 : [], 287 : [], 292 : [], 297 : [],
+	302 : [], 307 : [], 312 : [], 317 : [], 322 : [], 327 : [], 332 : [], 337 : [], 342 : [], 347 : [], 352 : [], 357 : []
+	}
+	count = 0
+	actual_sat_number_to_counter = [0 for s in range(num_of_satellites)]
+	for s_key in sorted(starlink_planes.keys()):
+		for values in sorted_planes_by_values[str(s_key)]:
+			starlink_planes[s_key].append(count)
+			actual_sat_number_to_counter[count] = values
+			count += 1
+
+	for v in range(len(actual_sat_number_to_counter)):
+		print v, actual_sat_number_to_counter[v]
+
+	return actual_sat_number_to_counter
+#
 # satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
 # satellites_by_name = {sat.name: sat for sat in satellites}
 # planes = extract_planes("starlink_tles.txt")
-#
+# #
 # cur_planes = planes["Planes"]
 # print len(planes["Unassigned"])
 # ts = load.timescale()
 # t = ts.now()
-
+#
 # sorted_planes = sort_satellites_within_plane(cur_planes, satellites_by_name, t)
 # for keys in sorted_planes.keys():
 # 	print keys

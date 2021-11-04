@@ -1,6 +1,7 @@
 from skyfield.api import N, W, wgs84, load, EarthSatellite
 import time
 
+
 max_gsl_length_m = 1089686.4181956202;
 
 def calc_distance_gs_sat_worker(args):
@@ -38,7 +39,27 @@ def distance_between_two_satellites(satellite1, satellite2, t):
 
     return (position2 - position1).distance().m
 
-def graph_add_ISLs(G, satellites, current_planes, n_orbits, n_sats_per_orbit, isl_config):
+def find_nearest_sat_in_adjacent_plane(constellation_planes, sat, key, satellites_by_name, t):
+    adj_sat = []
+    adj_planes = [-1, -1]
+    adj_planes[0], adj_planes[1] = ((key-5)%360), ((key+5)%360)
+    sat1 = satellites_by_name[str(sat)]
+    for adj_plane in adj_planes:
+        closest_sat = -1
+        minimum_distance = 1000000000000000
+        for sats in constellation_planes[str(adj_plane)]:
+            satx = satellites_by_name[str(sats)]
+            distance = distance_between_two_satellites(sat1, satx, t)
+            if distance < minimum_distance:
+                minimum_distance = distance
+                closest_sat = sats
+
+        if closest_sat != -1:
+            adj_sat.append(closest_sat)
+
+    return adj_sat
+
+def graph_add_ISLs(G, satellites_by_name, constellation_planes, n_orbits, n_sats_per_orbit, isl_config, t):
     if isl_config == "SAME_ORBIT_AND_GRID_ON_EDGE_SATELLITES_ONLY":
         for i in range(n_orbits):
             for j in range(n_sats_per_orbit):
@@ -53,11 +74,88 @@ def graph_add_ISLs(G, satellites, current_planes, n_orbits, n_sats_per_orbit, is
                     sat_adjacent_orbit = ((i + 1) % n_orbits) * n_sats_per_orbit + (j % n_sats_per_orbit)
                     G.add_edge(sat, sat_adjacent_orbit, weight=1)
 
-    # if isl_config == "BASED_ON_DISTANCE_MAX_FOUR_ISL_PER_SAT":
+    if isl_config == "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT":
+        for i in range(len(constellation_planes.keys())):
+            cur_key = constellation_planes.keys()[i]
+            for j in range(len(constellation_planes[str(cur_key)])):
+
+                # In the same plane
+                satname, adj_satname = constellation_planes[str(cur_key)][j], constellation_planes[str(cur_key)][(j+1)%len(constellation_planes[str(cur_key)])]
+                prefix, sat = constellation_planes[str(cur_key)][j].split("-")
+                prefix, sat_same_orbit = constellation_planes[str(cur_key)][(j+1)%len(constellation_planes[str(cur_key)])].split("-")
+                G.add_edge(satname, adj_satname, weight=1)
+
+                # In the adjacent planes for the edge sats only.
+                if j == 0 or j == len(constellation_planes[str(cur_key)])-1:
+                    sat_adjacent_orbit = find_nearest_sat_in_adjacent_plane(constellation_planes, str(prefix)+"-"+str(sat), int(cur_key), satellites_by_name, t)
+                    G.add_edge(satname, sat_adjacent_orbit[0], weight=1)
+                    G.add_edge(satname, sat_adjacent_orbit[1], weight=1)
 
     return G
 
+def mininet_add_ISLs(connectivity_matrix, satellites_by_name, actual_sat_number_to_counter, constellation_planes, n_orbits, n_sats_per_orbit, isl_config, t):
+    if isl_config == "SAME_ORBIT_AND_GRID_ON_EDGE_SATELLITES_ONLY":
+        for i in range(n_orbits):
+            for j in range(n_sats_per_orbit):
+                sat = i * n_sats_per_orbit + j
+
+                # Link to the next in the orbit
+                sat_same_orbit = i * n_sats_per_orbit + ((j + 1) % n_sats_per_orbit)
+                connectivity_matrix[sat][sat_same_orbit] = 1
+                connectivity_matrix[sat_same_orbit][sat] = 1
+
+                # Grid for the edge satellites
+                if j % n_sats_per_orbit == 0 or j % (n_sats_per_orbit - 1) == 0:
+                    sat_adjacent_orbit = ((i + 1) % n_orbits) * n_sats_per_orbit + (j % n_sats_per_orbit)
+                    connectivity_matrix[sat][sat_adjacent_orbit] = 1
+                    connectivity_matrix[sat_adjacent_orbit][sat] = 1
+
+    if isl_config == "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT":
+        for i in range(len(constellation_planes.keys())):
+            cur_key = constellation_planes.keys()[i]
+            for j in range(len(constellation_planes[str(cur_key)])):
+
+                # In the same plane
+                satname, adj_satname = constellation_planes[str(cur_key)][j], constellation_planes[str(cur_key)][(j+1)%len(constellation_planes[str(cur_key)])]
+                sat_index = actual_sat_number_to_counter.index(str(satname))
+                adj_sat_index = actual_sat_number_to_counter.index(str(adj_satname))
+                connectivity_matrix[sat_index][adj_sat_index] = 1
+                connectivity_matrix[adj_sat_index][sat_index] = 1
+
+                # In the adjacent planes for the edge sats only.
+                if j == 0 or j == len(constellation_planes[str(cur_key)])-1:
+                    sat_adjacent_orbit = find_nearest_sat_in_adjacent_plane(constellation_planes, str(satname), int(cur_key), satellites_by_name, t)
+                    sat_adjacent_orbit_index1 = actual_sat_number_to_counter.index(str(sat_adjacent_orbit[0]))
+                    sat_adjacent_orbit_index2 = actual_sat_number_to_counter.index(str(sat_adjacent_orbit[1]))
+
+                    connectivity_matrix[sat_index][sat_adjacent_orbit_index1] = 1
+                    connectivity_matrix[sat_adjacent_orbit_index1][sat_index] = 1
+                    connectivity_matrix[sat_index][sat_adjacent_orbit_index2] = 1
+                    connectivity_matrix[sat_adjacent_orbit_index2][sat_index] = 1
+
+    return connectivity_matrix
+
 def graph_add_GSLs(G, satellites, ground_stations, t, number_of_threads, association_criteria):
+    # find all satellites in range for each ground station.
+    list_args = []
+    for ground_station in ground_stations:
+        satellites_in_range = []
+        for sid in range(len(satellites)):
+            list_args.append((ground_stations, ground_station, satellites[sid], sid, t))
+
+
+    pool = Pool(number_of_threads)
+    ground_station_satellites_in_range_temporary = pool.map(calc_distance_gs_sat_worker, list_args)
+    pool.close()
+    pool.join()
+
+    # Find the best satellite
+    if association_criteria == "BASED_ON_DISTANCE_ONLY":
+        return gs_sat_association_criteria_BasedOnDistance(G, ground_station_satellites_in_range_temporary, ground_stations)
+
+    return -1
+
+def mininet_add_GSLs(connectivity_matrix, satellites, ground_stations, t, number_of_threads, association_criteria):
     # find all satellites in range for each ground station.
     list_args = []
     for ground_station in ground_stations:
