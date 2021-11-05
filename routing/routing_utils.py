@@ -26,7 +26,7 @@ def generate_ips_for_constellation():
 
     return available_ips
 
-def get_free_network_address(self, pool):
+def get_free_network_address(pool):
     free_ip = -1
     for i in pool:
         if i[0] == 1:
@@ -50,7 +50,7 @@ def assign_ips_for_constellation(links, addresses_pool):
     list_of_Intf_IPs = []
     #link = satx-ethy:satz-ethw
     for link in links:
-        linkIntf1, linkIntf2 = link.split("-")
+        linkIntf1, linkIntf2 = link.split(":")
         network_address = get_free_network_address(addresses_pool)
         if network_address != -1:
            oct1, oct2, oct3, oct4 = network_address.split('.');

@@ -34,7 +34,7 @@ def static_routing(G, destinations, num_of_satellites, num_of_ground_stations, n
             destination = -1
             if "gs" in dest[0]:
                 destination = int(dest[0][2:])+num_of_satellites
-            elif: "sat" in dest[0]:
+            elif "sat" in dest[0]:
                 destination = int(dest[0][3:])
 
             list_args.append((G, i, destination))
@@ -57,4 +57,3 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs):
 
             cmd_on_src_node  = "ip route add "+get_network_address(intfs_ips_last_link[1]["IP"])+"/28 via "+intfs_ips_first_link[1]["IP"]+" dev "+intfs_ips_first_link[0]["Interface"]+" & "
             cmd_on_dest_node = "ip route add "+get_network_address(intfs_ips_first_link[0]["IP"])+"/28 via "+intfs_ips_last_link[0]["IP"]+" dev "+intfs_ips_last_link[1]["Interface"]+" & "
-        
