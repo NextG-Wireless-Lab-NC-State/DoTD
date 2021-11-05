@@ -1,6 +1,6 @@
 from skyfield.api import N, W, wgs84, load, EarthSatellite
 import time
-
+from multiprocessing import Process, Manager, Pool
 
 max_gsl_length_m = 1089686.4181956202;
 
@@ -135,13 +135,13 @@ def mininet_add_ISLs(connectivity_matrix, satellites_by_name, actual_sat_number_
 
     return connectivity_matrix
 
-def graph_add_GSLs(G, satellites, ground_stations, t, number_of_threads, association_criteria):
+def graph_add_GSLs(G, connectivity_matrix, satellites, ground_stations, t, number_of_threads, association_criteria):
     # find all satellites in range for each ground station.
     list_args = []
     for ground_station in ground_stations:
         satellites_in_range = []
         for sid in range(len(satellites)):
-            list_args.append((ground_stations, ground_station, satellites[sid], sid, t))
+            list_args.append((ground_station, satellites[sid], sid, t))
 
 
     pool = Pool(number_of_threads)
@@ -150,32 +150,12 @@ def graph_add_GSLs(G, satellites, ground_stations, t, number_of_threads, associa
     pool.join()
 
     # Find the best satellite
-    if association_criteria == "BASED_ON_DISTANCE_ONLY":
-        return gs_sat_association_criteria_BasedOnDistance(G, ground_station_satellites_in_range_temporary, ground_stations)
+    if association_criteria == "BASED_ON_DISTANCE_ONLY_GRAPH":
+        return G_gs_sat_association_criteria_BasedOnDistance(G, ground_station_satellites_in_range_temporary, ground_stations, len(satellites))
 
     return -1
 
-def mininet_add_GSLs(connectivity_matrix, satellites, ground_stations, t, number_of_threads, association_criteria):
-    # find all satellites in range for each ground station.
-    list_args = []
-    for ground_station in ground_stations:
-        satellites_in_range = []
-        for sid in range(len(satellites)):
-            list_args.append((ground_stations, ground_station, satellites[sid], sid, t))
-
-
-    pool = Pool(number_of_threads)
-    ground_station_satellites_in_range_temporary = pool.map(calc_distance_gs_sat_worker, list_args)
-    pool.close()
-    pool.join()
-
-    # Find the best satellite
-    if association_criteria == "BASED_ON_DISTANCE_ONLY":
-        return gs_sat_association_criteria_BasedOnDistance(G, ground_station_satellites_in_range_temporary, ground_stations)
-
-    return -1
-
-def gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range, ground_stations):
+def G_gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range, actual_sat_number_to_counter, ground_stations, num_of_satellites):
     # The count of GSL links equals to the number of ground stations because each GS can only be associated with one satellite
     gsls = [0 for i in range(len(ground_stations))]
     ground_station_satellites_in_range = []
@@ -202,3 +182,46 @@ def gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range, g
             "Graph": G,
             "GSL_Connectivity": gsls
         }
+
+def mininet_add_GSLs(connectivity_matrix, satellites, actual_sat_number_to_counter, ground_stations, t, number_of_threads, association_criteria):
+    # find all satellites in range for each ground station.
+    list_args = []
+    for ground_station in ground_stations:
+        satellites_in_range = []
+        for sid in range(len(actual_sat_number_to_counter)):
+            list_args.append((ground_station, satellites[str(actual_sat_number_to_counter[sid])], sid, t))
+
+
+    pool = Pool(number_of_threads)
+    ground_station_satellites_in_range_temporary = pool.map(calc_distance_gs_sat_worker, list_args)
+    pool.close()
+    pool.join()
+
+    # Find the best satellite
+    if association_criteria == "BASED_ON_DISTANCE_ONLY_MININET":
+        return M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, ground_station_satellites_in_range_temporary, ground_stations, len(satellites))
+
+    return -1
+
+def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_satellites_in_range, ground_stations, num_of_satellites):
+    ground_station_satellites_in_range = []
+
+    for inrange_sat in all_gs_satellites_in_range:
+        if len(inrange_sat[0]) != 0:
+            ground_station_satellites_in_range.append(inrange_sat[0][0])
+
+    for gid in range(len(ground_stations)):
+        chosen_sid = -1
+        best_distance_m = 1000000000000000
+        for (distance_m, sid, gr_id) in ground_station_satellites_in_range:
+            if gid == gr_id:
+                if distance_m < best_distance_m:
+                    chosen_sid = sid
+                    best_distance_m = distance_m
+
+        if chosen_sid != -1:
+            connectivity_matrix[chosen_sid][num_of_satellites+gid] = 1
+            connectivity_matrix[num_of_satellites+gid][chosen_sid] = 1
+            # print "best distance ",gid, chosen_sid, best_distance_m
+
+    return connectivity_matrix

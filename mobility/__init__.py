@@ -1,8 +1,11 @@
 from .mobility_utils import (
 	distance_between_ground_station_satellite,
 	graph_add_ISLs,
+	mininet_add_ISLs,
 	graph_add_GSLs,
-	gs_sat_association_criteria_BasedOnDistance,
+	mininet_add_GSLs,
+	G_gs_sat_association_criteria_BasedOnDistance,
+	M_gs_sat_association_criteria_BasedOnDistance,
 	calc_distance_gs_sat_worker,
 	distance_between_two_satellites
 )

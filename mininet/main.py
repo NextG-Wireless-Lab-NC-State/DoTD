@@ -130,7 +130,7 @@ def main():
             available_satellites.append(satellites_by_name[str(satellite)])
 
     available_satellites_by_name = {sat.name: sat for sat in available_satellites}
-
+    # print available_satellites[0]
     actual_sat_number_to_counter = label_satellites_properly(sorted_planes, len(available_satellites_by_name))
 
     ground_stations = read_gs("../mobility/ground_stations.txt")
@@ -139,13 +139,11 @@ def main():
     num_of_ground_stations = len(ground_stations)
 
     print num_of_satellites, num_of_ground_stations
-    conn_mat_size = num_of_satellites #+ num_of_ground_stations
+    conn_mat_size = num_of_satellites + num_of_ground_stations
 
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
     connectivity_matrix = mininet_add_ISLs(connectivity_matrix, available_satellites_by_name, actual_sat_number_to_counter, sorted_planes, 0, 0, "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT", t)
-    # connectivity_matrix = generate_isls_in_same_orbit_grid_starlink_const(connectivity_matrix, num_orbits, num_sats_per_orbit)
-    # connectivity_matrix = generate_gsl(connectivity_matrix, satellites, ground_stations, tles["epoch"], date_str)
-
+    connectivity_matrix = mininet_add_GSLs(connectivity_matrix, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, t, 12, "BASED_ON_DISTANCE_ONLY_MININET")
 
     ############## For test purposes
     # G = nx.Graph()
