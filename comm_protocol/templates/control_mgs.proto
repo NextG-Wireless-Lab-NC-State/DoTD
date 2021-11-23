@@ -2,8 +2,9 @@ syntax = "proto3";
 
 message control_msg {
 	optional int32 cmd_name = 1;
-	optional string cmd = 2;
-	repeated Parameters cmd_param = 3;
+	optional string cmd_receiver = 2;
+	optional string cmd = 3;
+	repeated Parameters cmd_param = 4;
 }
 
 message Parameters {

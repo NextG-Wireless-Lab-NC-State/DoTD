@@ -41,18 +41,29 @@ class sat_network(Topo):
         sat_list = []
         gs_list  = []
         links    = []
+        mgnt_intf = []
         s1 = self.addSwitch('s1')
         sat_intf_count = []
-        sat_intf_count = [0 for i in range(len(satellites))]
+        sat_intf_count = [1 for i in range(len(satellites))]
 
+        cnt_ip = 0
         for i in range(0, len(satellites)):
-            sat_name = self.addHost('sat'+str(i), cls=LinuxRouter)
+            ip_control_intf_oct3 = (i+4)/254
+            ip_control_intf_oct4 = (i+4)%254
+            # , ip="192.168."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)
+            sat_name = self.addHost('sat'+str(i), cls=LinuxRouter, ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
             self.addLink(sat_name, s1, cls=TCLink)
             sat_list.append(sat_name)
+            mgnt_intf.append({"node":'sat'+str(i), "mgnt_ip": "172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)})
+            cnt_ip = i
 
         for i in range(0, len(ground_stations)):
-            gs_name = self.addHost('gs'+str(i))
+            ip_control_intf_oct3 = (i+4+len(satellites))/254
+            ip_control_intf_oct4 = (i+4+len(satellites))%254
+            # , ip="192.168."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)
+            gs_name = self.addHost('gs'+str(i), ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
             self.addLink(gs_name, s1, cls=TCLink)
+            mgnt_intf.append({"node":'gs'+str(i), "mgnt_ip": "172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)})
             gs_list.append(gs_name)
 
         connectivity_matrix_temp = connectivity_matrix
@@ -72,8 +83,8 @@ class sat_network(Topo):
                 # Add the GSL links
                 if i < len(satellites) and j >= len(satellites) and connectivity_matrix_temp[i][j] == 1:
                     gid = j - len(satellites)
-                    self.addLink(sat_list[i], gs_list[gid], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'gs'+str(gid)+'-eth0', cls=TCLink)
-                    links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+ 'gs'+str(gid)+'-eth0')
+                    self.addLink(sat_list[i], gs_list[gid], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'gs'+str(gid)+'-eth1', cls=TCLink)
+                    links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+ 'gs'+str(gid)+'-eth1')
 
                     connectivity_matrix_temp[i][j] = 0
                     connectivity_matrix_temp[j][i] = 0
@@ -84,5 +95,23 @@ class sat_network(Topo):
         	"sat_list": sat_list,
         	"gs_list": gs_list,
             "links": links,
-            "intf_count_sats": sat_intf_count
+            "intf_count_sats": sat_intf_count,
+            "management_interface": mgnt_intf
     	}
+
+    def get_management_ip(self, all_mgnt_ips, node):
+        for interface in all_mgnt_ips:
+            if interface["node"] == node:
+                return interface["mgnt_ip"]
+
+    def startListener(self, net, satellites, ground_stations, intfs):
+        for i in range(len(satellites)):
+            sat_node = net.getNodeByName("sat"+str(i))
+            node_m_ip = self.get_management_ip(intfs, "sat"+str(i)).strip()
+            print("added .....,"+node_m_ip+" \n")
+            sat_node.cmd("python ../comm_protocol/satellite_agent.py "+node_m_ip+ " &")
+
+        for i in range(len(ground_stations)):
+            gs_node = net.getNodeByName("gs"+str(i))
+            node_m_ip = self.get_management_ip(intfs, "gs"+str(i)).strip()
+            gs_node.cmd("python ../comm_protocol/satellite_agent.py "+node_m_ip+ " &")

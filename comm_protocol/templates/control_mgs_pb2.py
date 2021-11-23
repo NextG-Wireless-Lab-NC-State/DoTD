@@ -19,7 +19,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=None,
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x11\x63ontrol_mgs.proto\"g\n\x0b\x63ontrol_msg\x12\x13\n\x06\x63md_id\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12\x10\n\x03\x63md\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x1e\n\tcmd_param\x18\x03 \x03(\x0b\x32\x0b.ParametersB\t\n\x07_cmd_idB\x06\n\x04_cmd\"\xec\x01\n\nParameters\x12\x11\n\x04\x61rg1\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x11\n\x04\x61rg2\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x11\n\x04\x61rg3\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x11\n\x04\x61rg4\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x11\n\x04\x61rg5\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x11\n\x04\x61rg6\x18\x06 \x01(\tH\x05\x88\x01\x01\x12\x11\n\x04\x61rg7\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x11\n\x04\x61rg8\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x07\n\x05_arg1B\x07\n\x05_arg2B\x07\n\x05_arg3B\x07\n\x05_arg4B\x07\n\x05_arg5B\x07\n\x05_arg6B\x07\n\x05_arg7B\x07\n\x05_arg8b\x06proto3'
+  serialized_pb=b'\n\x11\x63ontrol_mgs.proto\"\x97\x01\n\x0b\x63ontrol_msg\x12\x15\n\x08\x63md_name\x18\x01 \x01(\x05H\x00\x88\x01\x01\x12\x19\n\x0c\x63md_receiver\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x10\n\x03\x63md\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x1e\n\tcmd_param\x18\x04 \x03(\x0b\x32\x0b.ParametersB\x0b\n\t_cmd_nameB\x0f\n\r_cmd_receiverB\x06\n\x04_cmd\"\xec\x01\n\nParameters\x12\x11\n\x04\x61rg1\x18\x01 \x01(\tH\x00\x88\x01\x01\x12\x11\n\x04\x61rg2\x18\x02 \x01(\tH\x01\x88\x01\x01\x12\x11\n\x04\x61rg3\x18\x03 \x01(\tH\x02\x88\x01\x01\x12\x11\n\x04\x61rg4\x18\x04 \x01(\tH\x03\x88\x01\x01\x12\x11\n\x04\x61rg5\x18\x05 \x01(\tH\x04\x88\x01\x01\x12\x11\n\x04\x61rg6\x18\x06 \x01(\tH\x05\x88\x01\x01\x12\x11\n\x04\x61rg7\x18\x07 \x01(\tH\x06\x88\x01\x01\x12\x11\n\x04\x61rg8\x18\x08 \x01(\tH\x07\x88\x01\x01\x42\x07\n\x05_arg1B\x07\n\x05_arg2B\x07\n\x05_arg3B\x07\n\x05_arg4B\x07\n\x05_arg5B\x07\n\x05_arg6B\x07\n\x05_arg7B\x07\n\x05_arg8b\x06proto3'
 )
 
 
@@ -34,22 +34,29 @@ _CONTROL_MSG = _descriptor.Descriptor(
   create_key=_descriptor._internal_create_key,
   fields=[
     _descriptor.FieldDescriptor(
-      name='cmd_id', full_name='control_msg.cmd_id', index=0,
+      name='cmd_name', full_name='control_msg.cmd_name', index=0,
       number=1, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='cmd', full_name='control_msg.cmd', index=1,
+      name='cmd_receiver', full_name='control_msg.cmd_receiver', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=b"".decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
     _descriptor.FieldDescriptor(
-      name='cmd_param', full_name='control_msg.cmd_param', index=2,
-      number=3, type=11, cpp_type=10, label=3,
+      name='cmd', full_name='control_msg.cmd', index=2,
+      number=3, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='cmd_param', full_name='control_msg.cmd_param', index=3,
+      number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
@@ -66,18 +73,23 @@ _CONTROL_MSG = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
     _descriptor.OneofDescriptor(
-      name='_cmd_id', full_name='control_msg._cmd_id',
+      name='_cmd_name', full_name='control_msg._cmd_name',
       index=0, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
     _descriptor.OneofDescriptor(
-      name='_cmd', full_name='control_msg._cmd',
+      name='_cmd_receiver', full_name='control_msg._cmd_receiver',
       index=1, containing_type=None,
       create_key=_descriptor._internal_create_key,
     fields=[]),
+    _descriptor.OneofDescriptor(
+      name='_cmd', full_name='control_msg._cmd',
+      index=2, containing_type=None,
+      create_key=_descriptor._internal_create_key,
+    fields=[]),
   ],
-  serialized_start=21,
-  serialized_end=124,
+  serialized_start=22,
+  serialized_end=173,
 )
 
 
@@ -197,14 +209,17 @@ _PARAMETERS = _descriptor.Descriptor(
       create_key=_descriptor._internal_create_key,
     fields=[]),
   ],
-  serialized_start=127,
-  serialized_end=363,
+  serialized_start=176,
+  serialized_end=412,
 )
 
 _CONTROL_MSG.fields_by_name['cmd_param'].message_type = _PARAMETERS
-_CONTROL_MSG.oneofs_by_name['_cmd_id'].fields.append(
-  _CONTROL_MSG.fields_by_name['cmd_id'])
-_CONTROL_MSG.fields_by_name['cmd_id'].containing_oneof = _CONTROL_MSG.oneofs_by_name['_cmd_id']
+_CONTROL_MSG.oneofs_by_name['_cmd_name'].fields.append(
+  _CONTROL_MSG.fields_by_name['cmd_name'])
+_CONTROL_MSG.fields_by_name['cmd_name'].containing_oneof = _CONTROL_MSG.oneofs_by_name['_cmd_name']
+_CONTROL_MSG.oneofs_by_name['_cmd_receiver'].fields.append(
+  _CONTROL_MSG.fields_by_name['cmd_receiver'])
+_CONTROL_MSG.fields_by_name['cmd_receiver'].containing_oneof = _CONTROL_MSG.oneofs_by_name['_cmd_receiver']
 _CONTROL_MSG.oneofs_by_name['_cmd'].fields.append(
   _CONTROL_MSG.fields_by_name['cmd'])
 _CONTROL_MSG.fields_by_name['cmd'].containing_oneof = _CONTROL_MSG.oneofs_by_name['_cmd']

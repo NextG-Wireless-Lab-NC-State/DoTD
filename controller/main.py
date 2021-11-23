@@ -29,12 +29,32 @@ from mobility.mobility_utils import *
 from mobility.read_gs import *
 from mininet_infra.create_mininet_topology import *
 from routing.routing_utils import *
+from comm_protocol.controller_main import *
 
-def controller_thread(links):
-    available_ips = generate_ips_for_constellation()
-    list_of_Intf_IPs = assign_ips_for_constellation(links, available_ips)
-    # for ip in list_of_Intf_IPs:
-    #     print ip
+# def controller_thread(links, satellites, ground_stations):
+#     available_ips = generate_ips_for_constellation()
+#     list_of_Intf_IPs = assign_ips_for_constellation(links, available_ips)
+#     # socket = establish_connection()
+#
+#     for intf_ips in list_of_Intf_IPs:
+#         sat, interface = intf_ips["Interface"].split("-")
+#         # command_message = create_message("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
+#         # send_command(command_message, socket)
+#     # for ip in list_of_Intf_IPs:
+#     #     print ip
+def log_info_for_controller(current_time, links, m_intfs):
+    links_log = open("links_log.txt", "w")
+    links_log.write(current_time + "\n")
+    for link in links:
+        links_log.write(link + "\n")
+    links_log.close()
+
+    m_intf_log = open("m_intf_log.txt", "w")
+    for intf in m_intfs:
+        m_intf_log.write(intf["node"] + "\t" + intf["mgnt_ip"] + "\n")
+    m_intf_log.close()
+
+    print("..... Logged!\n")
 
 def main():
     N = 3
@@ -47,9 +67,10 @@ def main():
     print len(planes["Unassigned"])
     ts = load.timescale()
     t = ts.now()
-
+    print t
     sorted_planes = sort_satellites_within_plane(cur_planes, satellites_by_name, t)
 
+    # Get the satellites in planes only, igonore the Unassigned satellites
     available_satellites = []
     for key in sorted_planes.keys():
         sats = ""
@@ -87,17 +108,14 @@ def main():
 
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=available_satellites_by_name, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix)
-
-    x = threading.Thread(target=controller_thread, args=(topg["links"],))
-    # x.start()
+    log_info_for_controller(t.utc_strftime(), topg["links"], topg["management_interface"]);
+    #x = threading.Thread(target=controller_thread, args=(topg["links"],available_satellites,ground_stations,))
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     net.start()
-    x.start()
+    topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
+    #x.start()
     CLI( net)
     net.stop()
-    #
-    # os.system("killall -9 ospfd zebra")
-    # os.system("rm -f /tmp/*.pid")
 
 setLogLevel('info')    # 'info' is normal; 'debug' is for when there are problems
 main()
