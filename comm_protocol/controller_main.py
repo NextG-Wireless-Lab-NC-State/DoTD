@@ -1,17 +1,20 @@
+
 from socket import *
 import subprocess
 import time
 import sys
 import control_mgs_pb2 as ControlMsg
+import string
 
-serverAddressPort   = ("255.255.255.255", 20001)
+#serverAddressPort   = ("172.16.255.255", 20001)
 bufferSize          = 1024
 
 def establish_connection():
     UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-    UDPClientSocket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-    print "Controller - Agent Socket is open"
+    #UDPClientSocket.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
+    print ("Controller - Agent Socket is open")
+
     return UDPClientSocket
 
 def create_message(name, to, command, args_list):
@@ -30,9 +33,20 @@ def create_message(name, to, command, args_list):
 
     return send_msg.SerializeToString()
 
-def send_command(message_to_send, socket):
-    socket.sendto(message_to_send, serverAddressPort)
+def send_command(message_to_send, serverAddressPort):
+    print serverAddressPort
+    UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
+    UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
-UDPClientSocket = establish_connection()
-msg = create_message("Assign IP", "SAT12", "ifconfig", ["sat-eth1", "120.10.1.1/20"])
-send_command(msg, UDPClientSocket)
+    try:
+    	UDPClientSocket.sendto(message_to_send, serverAddressPort)
+	UDPClientSocket.close()
+    except error as e:
+	print e
+	UDPClientSocket.close()
+
+#UDPClientSocket = establish_connection()
+#msg = create_message("Assign IP", "h1", "ifconfig", ["sat-eth1", "12.16.0.15/16"])
+#msg = create_message("check connectivity", "sat1", "ping", ["172.16.0.11"])
+#send_command(msg, ("172.16.5.197", 20001))
+#time.sleep(10)
