@@ -137,13 +137,13 @@ def mininet_add_ISLs(connectivity_matrix, satellites_by_name, actual_sat_number_
 
     return connectivity_matrix
 
-def graph_add_GSLs(G, connectivity_matrix, satellites, ground_stations, t, number_of_threads, association_criteria):
+def graph_add_GSLs(G, satellites, actual_sat_number_to_counter, ground_stations, t, number_of_threads, association_criteria):
     # find all satellites in range for each ground station.
     list_args = []
     for ground_station in ground_stations:
         satellites_in_range = []
-        for sid in range(len(satellites)):
-            list_args.append((ground_station, satellites[sid], sid, t))
+        for sid in range(len(actual_sat_number_to_counter)):
+            list_args.append((ground_station, satellites[str(actual_sat_number_to_counter[sid])], sid, t))
 
 
     pool = Pool(number_of_threads)
@@ -157,7 +157,7 @@ def graph_add_GSLs(G, connectivity_matrix, satellites, ground_stations, t, numbe
 
     return -1
 
-def G_gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range, actual_sat_number_to_counter, ground_stations, num_of_satellites):
+def G_gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range, ground_stations, num_of_satellites):
     # The count of GSL links equals to the number of ground stations because each GS can only be associated with one satellite
     gsls = [0 for i in range(len(ground_stations))]
     ground_station_satellites_in_range = []

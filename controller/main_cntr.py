@@ -104,11 +104,11 @@ def main():
 
     G = nx.Graph()
     G = graph_add_ISLs(G, available_satellites_by_name, actual_sat_number_to_counter, sorted_planes, 0, 0, "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT", mininetExtract["used_time"])
-    G = graph_add_GSLs(G, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, mininetExtract["used_time"], 12, "BASED_ON_DISTANCE_ONLY_MININET")
-
+    G = graph_add_GSLs(G, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, mininetExtract["used_time"], 12, "BASED_ON_DISTANCE_ONLY_GRAPH")
+    print G["GSL_Connectivity"]
     for i in range(len(G["GSL_Connectivity"])):
         print i, G["GSL_Connectivity"][i]
-    
+
     available_ips = generate_ips_for_constellation()
     list_of_Intf_IPs = assign_ips_for_constellation(mininetExtract["links"], available_ips)
     crtl_mininet_ip_assignment(list_of_Intf_IPs, mininetExtract2)
