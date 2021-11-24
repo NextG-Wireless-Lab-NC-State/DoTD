@@ -59,6 +59,15 @@ def get_management_ip(all_mgnt_ips, node):
 	if interface["node"] == node:
 		return interface["mgnt_ip"]
 
+def crtl_mininet_ip_assignment(list_of_Intf_IPs, nodes_mgnt_intf):
+    for intf_ips in list_of_Intf_IPs:
+        sat, interface = intf_ips["Interface"].split("-")
+        ip_addr = get_management_ip(nodes_mgnt_intf, sat)
+        command_message = create_message("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
+        serverAddressPort=(str(ip_addr.strip()), 20001)
+        send_command(command_message, serverAddressPort)
+        time.sleep(0.02)
+
 def main():
     N = 3
 
@@ -93,21 +102,15 @@ def main():
     print num_of_satellites, num_of_ground_stations
     conn_mat_size = num_of_satellites + num_of_ground_stations
 
-    #socket = establish_connection()
+    G = nx.Graph()
+    G = graph_add_ISLs(G, available_satellites_by_name, actual_sat_number_to_counter, sorted_planes, 0, 0, "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT", mininetExtract["used_time"])
+    G = graph_add_GSLs(G, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, mininetExtract["used_time"], 12, "BASED_ON_DISTANCE_ONLY_MININET")
+
+    for i in range(len(G["GSL_Connectivity"])):
+        print i, G["GSL_Connectivity"][i]
+    
     available_ips = generate_ips_for_constellation()
     list_of_Intf_IPs = assign_ips_for_constellation(mininetExtract["links"], available_ips)
-    cnt = 0
-    for intf_ips in list_of_Intf_IPs:
-	print intf_ips
-	sat, interface = intf_ips["Interface"].split("-")
-	#socket = establish_connection()
-        ip_addr = get_management_ip(mininetExtract2, sat)
-	print sat
-	command_message = create_message("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
-	serverAddressPort=(str(ip_addr.strip()), 20001)
-	send_command(command_message, serverAddressPort)
-	time.sleep(0.01)
-	cnt+=1
-    print mininetExtract["used_time"]
+    crtl_mininet_ip_assignment(list_of_Intf_IPs, mininetExtract2)
 
 main()

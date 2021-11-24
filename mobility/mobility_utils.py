@@ -59,7 +59,7 @@ def find_nearest_sat_in_adjacent_plane(constellation_planes, sat, key, satellite
 
     return adj_sat
 
-def graph_add_ISLs(G, satellites_by_name, constellation_planes, n_orbits, n_sats_per_orbit, isl_config, t):
+def graph_add_ISLs(G, satellites_by_name, actual_sat_number_to_counter, constellation_planes, n_orbits, n_sats_per_orbit, isl_config, t):
     if isl_config == "SAME_ORBIT_AND_GRID_ON_EDGE_SATELLITES_ONLY":
         for i in range(n_orbits):
             for j in range(n_sats_per_orbit):
@@ -81,16 +81,18 @@ def graph_add_ISLs(G, satellites_by_name, constellation_planes, n_orbits, n_sats
 
                 # In the same plane
                 satname, adj_satname = constellation_planes[str(cur_key)][j], constellation_planes[str(cur_key)][(j+1)%len(constellation_planes[str(cur_key)])]
-                prefix, sat = constellation_planes[str(cur_key)][j].split("-")
-                prefix, sat_same_orbit = constellation_planes[str(cur_key)][(j+1)%len(constellation_planes[str(cur_key)])].split("-")
-                G.add_edge(satname, adj_satname, weight=1)
+                sat_index = actual_sat_number_to_counter.index(str(satname))
+                adj_sat_index = actual_sat_number_to_counter.index(str(adj_satname))
+                G.add_edge(sat_index, adj_sat_index, weight=1)
 
                 # In the adjacent planes for the edge sats only.
                 if j == 0 or j == len(constellation_planes[str(cur_key)])-1:
-                    sat_adjacent_orbit = find_nearest_sat_in_adjacent_plane(constellation_planes, str(prefix)+"-"+str(sat), int(cur_key), satellites_by_name, t)
-                    G.add_edge(satname, sat_adjacent_orbit[0], weight=1)
-                    G.add_edge(satname, sat_adjacent_orbit[1], weight=1)
+                    sat_adjacent_orbit = find_nearest_sat_in_adjacent_plane(constellation_planes, str(satname), int(cur_key), satellites_by_name, t)
+                    sat_adjacent_orbit_index1 = actual_sat_number_to_counter.index(str(sat_adjacent_orbit[0]))
+                    sat_adjacent_orbit_index2 = actual_sat_number_to_counter.index(str(sat_adjacent_orbit[1]))
 
+                    G.add_edge(sat_index, sat_adjacent_orbit_index1, weight=1)
+                    G.add_edge(sat_index, sat_adjacent_orbit_index2, weight=1)
     return G
 
 def mininet_add_ISLs(connectivity_matrix, satellites_by_name, actual_sat_number_to_counter, constellation_planes, n_orbits, n_sats_per_orbit, isl_config, t):
@@ -174,7 +176,7 @@ def G_gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range,
                     best_distance_m = distance_m
 
         if chosen_sid != -1:
-            G.add_edge(chosen_sid, len(satellites)+gid, weight=1)
+            G.add_edge(chosen_sid, num_of_satellites+gid, weight=1)
             gsls[gid] = chosen_sid
             print "best distance ",gid, chosen_sid, best_distance_m
 
