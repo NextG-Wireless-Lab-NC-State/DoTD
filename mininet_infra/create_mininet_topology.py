@@ -5,7 +5,14 @@ from mininet.link import TCLink
 from mininet.link import *
 from mininet.topo import Topo
 from mininet.log import setLogLevel, info
-
+import socket
+import time
+import subprocess
+import threading
+import os
+import sys
+sys.path.append('../comm_protocol')
+import c_m_update_topology_pb2 as updateTopologyMsg
 
 class LinuxRouter( Node ):	# from the Mininet library
     "A Node with IP forwarding enabled."
@@ -104,6 +111,30 @@ class sat_network(Topo):
             if interface["node"] == node:
                 return interface["mgnt_ip"]
 
+
+    def run_topology_commands(self, net, command, node1, node2):
+        net_node1 = net.getNodeByName(node1)
+        net_node2 = net.getNodeByName(node2)
+
+        if command == "deleteLink":
+            if net.linksBetween(net_node1, net_node2):
+                net.delLinkBetween(net_node1, net_node2)
+
+        if command == "addLink":
+            net.addLink(net_node1, net_node2, cls=TCLink)
+
+    def handle_topology_updates_commands(self, net):
+        UDPSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        UDPSocket.bind(("172.16.0.3", 20001))
+        print "listener on 0.3 is created"
+        while(True):
+            bytesAddressPair = UDPSocket.recvfrom(1024)
+            print bytesAddressPair
+            recv_msg = updateTopologyMsg.c_m_update_topology()
+            recv_msg.ParseFromString(bytesAddressPair[0])
+            t = threading.Thread(target=handle_commands, args=(net, recv_msg.command, recv_msg.node1_name, recv_msg.node2_name))
+            t.start()
+
     def startListener(self, net, satellites, ground_stations, intfs):
         for i in range(len(satellites)):
             sat_node = net.getNodeByName("sat"+str(i))
@@ -115,3 +146,6 @@ class sat_network(Topo):
             gs_node = net.getNodeByName("gs"+str(i))
             node_m_ip = self.get_management_ip(intfs, "gs"+str(i)).strip()
             gs_node.cmd("python ../comm_protocol/satellite_agent.py "+node_m_ip+ " &")
+
+        mininet_topology_listner = threading.Thread(target=self.handle_topology_updates_commands, args=(net,))
+        mininet_topology_listner.start()

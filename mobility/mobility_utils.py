@@ -1,6 +1,7 @@
 from skyfield.api import N, W, wgs84, load, EarthSatellite
 import time
 from multiprocessing import Process, Manager, Pool
+import itertools
 
 max_gsl_length_m = 1089686.4181956202;
 
@@ -58,6 +59,16 @@ def find_nearest_sat_in_adjacent_plane(constellation_planes, sat, key, satellite
             adj_sat.append(closest_sat)
 
     return adj_sat
+
+
+def get_differences_in_GSLs_between_iterations(old_list, new_list):
+	differences = []
+	i = 0;
+	for o,n in itertools.izip(old_list,new_list):
+		if o != n:
+			differences.append((i, o, n))
+		i += 1
+	return differences
 
 def graph_add_ISLs(G, satellites_by_name, actual_sat_number_to_counter, constellation_planes, n_orbits, n_sats_per_orbit, isl_config, t):
     if isl_config == "SAME_ORBIT_AND_GRID_ON_EDGE_SATELLITES_ONLY":
@@ -178,7 +189,7 @@ def G_gs_sat_association_criteria_BasedOnDistance(G, all_gs_satellites_in_range,
         if chosen_sid != -1:
             G.add_edge(chosen_sid, num_of_satellites+gid, weight=1)
             gsls[gid] = chosen_sid
-            print "best distance ",gid, chosen_sid, best_distance_m
+            # print "best distance ",gid, chosen_sid, best_distance_m
 
     return {
             "Graph": G,

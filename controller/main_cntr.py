@@ -63,10 +63,21 @@ def crtl_mininet_ip_assignment(list_of_Intf_IPs, nodes_mgnt_intf):
     for intf_ips in list_of_Intf_IPs:
         sat, interface = intf_ips["Interface"].split("-")
         ip_addr = get_management_ip(nodes_mgnt_intf, sat)
-        command_message = create_message("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
+        command_message = create_message_to_nodes("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
         serverAddressPort=(str(ip_addr.strip()), 20001)
         send_command(command_message, serverAddressPort)
         time.sleep(0.02)
+
+def crtl_mininet_update_topology(gsl_changes):
+    for i in range(len(gsl_changes)):
+        command_message = create_message_to_mininet("deleteLink", "sat"+str(gsl_changes[i][1]), "gs"+str(gsl_changes[i][0]))
+        serverAddressPort=("172.16.0.3", 20001)
+        send_command(command_message, serverAddressPort)
+
+    for i in range(len(gsl_changes)):
+        command_message = create_message_to_mininet("addLink", "sat"+str(gsl_changes[i][2]), "gs"+str(gsl_changes[i][0]))
+        serverAddressPort=("172.16.0.3", 20001)
+        send_command(command_message, serverAddressPort)
 
 def main():
     N = 3
@@ -105,12 +116,18 @@ def main():
     G = nx.Graph()
     G = graph_add_ISLs(G, available_satellites_by_name, actual_sat_number_to_counter, sorted_planes, 0, 0, "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT", mininetExtract["used_time"])
     G = graph_add_GSLs(G, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, mininetExtract["used_time"], 12, "BASED_ON_DISTANCE_ONLY_GRAPH")
-    print G["GSL_Connectivity"]
-    for i in range(len(G["GSL_Connectivity"])):
-        print i, G["GSL_Connectivity"][i]
 
-    available_ips = generate_ips_for_constellation()
-    list_of_Intf_IPs = assign_ips_for_constellation(mininetExtract["links"], available_ips)
-    crtl_mininet_ip_assignment(list_of_Intf_IPs, mininetExtract2)
+    # available_ips = generate_ips_for_constellation()
+    # list_of_Intf_IPs = assign_ips_for_constellation(mininetExtract["links"], available_ips)
+    # crtl_mininet_ip_assignment(list_of_Intf_IPs, mininetExtract2)
 
+    while 1:
+        ts = load.timescale()
+        t = ts.now()
+        print('UTC date and time:', t.utc_strftime())
+        old_gsls = G["GSL_Connectivity"][:]
+        G = graph_add_GSLs(G["Graph"], available_satellites_by_name, actual_sat_number_to_counter, ground_stations, t, 12, "BASED_ON_DISTANCE_ONLY_GRAPH")
+        gsls_differences = get_differences_in_GSLs_between_iterations(old_gsls, G["GSL_Connectivity"])
+        print gsls_differences
+        crtl_mininet_update_topology(gsls_differences)
 main()

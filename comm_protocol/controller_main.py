@@ -4,6 +4,7 @@ import subprocess
 import time
 import sys
 import control_mgs_pb2 as ControlMsg
+import c_m_update_topology_pb2 as updateTopologyMsg
 import string
 
 #serverAddressPort   = ("172.16.255.255", 20001)
@@ -17,7 +18,7 @@ def establish_connection():
 
     return UDPClientSocket
 
-def create_message(name, to, command, args_list):
+def create_message_to_nodes(name, to, command, args_list):
     send_msg             = ControlMsg.control_msg()
     send_msg.cmd_name    = name
     send_msg.cmd_receiver= to
@@ -33,6 +34,14 @@ def create_message(name, to, command, args_list):
 
     return send_msg.SerializeToString()
 
+def create_message_to_mininet(command, node1, node2):
+    send_msg            = updateTopologyMsg.c_m_update_topology()
+    send_msg.command    = command
+    send_msg.node1_name = node1
+    send_msg.node2_name = node2
+
+    return send_msg.SerializeToString()
+
 def send_command(message_to_send, serverAddressPort):
     print serverAddressPort
     UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
@@ -40,10 +49,10 @@ def send_command(message_to_send, serverAddressPort):
 
     try:
     	UDPClientSocket.sendto(message_to_send, serverAddressPort)
-	UDPClientSocket.close()
+        UDPClientSocket.close()
     except error as e:
-	print e
-	UDPClientSocket.close()
+        print e
+        UDPClientSocket.close()
 
 #UDPClientSocket = establish_connection()
 #msg = create_message("Assign IP", "h1", "ifconfig", ["sat-eth1", "12.16.0.15/16"])
