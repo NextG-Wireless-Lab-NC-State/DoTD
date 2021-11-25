@@ -52,11 +52,12 @@ class sat_network(Topo):
         s1 = self.addSwitch('s1')
         sat_intf_count = []
         sat_intf_count = [1 for i in range(len(satellites))]
-
+        m_agent = self.addHost('m_agent', ip="172.16.0.4")
+        self.addLink(m_agent, s1, cls=TCLink)
         cnt_ip = 0
         for i in range(0, len(satellites)):
-            ip_control_intf_oct3 = (i+4)/254
-            ip_control_intf_oct4 = (i+4)%254
+            ip_control_intf_oct3 = (i+5)/254
+            ip_control_intf_oct4 = (i+5)%254
             # , ip="192.168."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)
             sat_name = self.addHost('sat'+str(i), cls=LinuxRouter, ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
             self.addLink(sat_name, s1, cls=TCLink)
@@ -65,8 +66,8 @@ class sat_network(Topo):
             cnt_ip = i
 
         for i in range(0, len(ground_stations)):
-            ip_control_intf_oct3 = (i+4+len(satellites))/254
-            ip_control_intf_oct4 = (i+4+len(satellites))%254
+            ip_control_intf_oct3 = (i+5+len(satellites))/254
+            ip_control_intf_oct4 = (i+5+len(satellites))%254
             # , ip="192.168."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)
             gs_name = self.addHost('gs'+str(i), ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
             self.addLink(gs_name, s1, cls=TCLink)
@@ -111,7 +112,6 @@ class sat_network(Topo):
             if interface["node"] == node:
                 return interface["mgnt_ip"]
 
-
     def run_topology_commands(self, net, command, node1, node2):
         net_node1 = net.getNodeByName(node1)
         net_node2 = net.getNodeByName(node2)
@@ -121,19 +121,21 @@ class sat_network(Topo):
                 net.delLinkBetween(net_node1, net_node2)
 
         if command == "addLink":
+            net_node1.cmd("ifconfig")
+            net_node2.cmd("ifconfig")
             net.addLink(net_node1, net_node2, cls=TCLink)
 
     def handle_topology_updates_commands(self, net):
         UDPSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
-        UDPSocket.bind(("172.16.0.3", 20001))
-        print "listener on 0.3 is created"
+        UDPSocket.bind(("", 20001))
+        print "Mininet main listener is created ... "
         while(True):
             bytesAddressPair = UDPSocket.recvfrom(1024)
-            print bytesAddressPair
             recv_msg = updateTopologyMsg.c_m_update_topology()
             recv_msg.ParseFromString(bytesAddressPair[0])
-            t = threading.Thread(target=handle_commands, args=(net, recv_msg.command, recv_msg.node1_name, recv_msg.node2_name))
-            t.start()
+            self.run_topology_commands(net, recv_msg.command, recv_msg.node1_name, recv_msg.node2_name)
+            # t = threading.Thread(target=self.run_topology_commands, args=(net, recv_msg.command, recv_msg.node1_name, recv_msg.node2_name))
+            # t.start()
 
     def startListener(self, net, satellites, ground_stations, intfs):
         for i in range(len(satellites)):

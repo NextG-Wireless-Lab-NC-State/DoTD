@@ -22,6 +22,11 @@ import bellmanford as bf
 import itertools
 from multiprocessing import Process, Manager, Pool
 
+import socket
+import time
+import subprocess
+import threading
+
 import sys
 sys.path.append("../")
 from mobility.read_real_tles import *
@@ -31,17 +36,6 @@ from mininet_infra.create_mininet_topology import *
 from routing.routing_utils import *
 from comm_protocol.controller_main import *
 
-# def controller_thread(links, satellites, ground_stations):
-#     available_ips = generate_ips_for_constellation()
-#     list_of_Intf_IPs = assign_ips_for_constellation(links, available_ips)
-#     # socket = establish_connection()
-#
-#     for intf_ips in list_of_Intf_IPs:
-#         sat, interface = intf_ips["Interface"].split("-")
-#         # command_message = create_message("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
-#         # send_command(command_message, socket)
-#     # for ip in list_of_Intf_IPs:
-#     #     print ip
 def log_info_for_controller(current_time, links, m_intfs):
     links_log = open("links_log.txt", "w")
     links_log.write(current_time + "\n")
@@ -79,7 +73,6 @@ def main():
             available_satellites.append(satellites_by_name[str(satellite)])
 
     available_satellites_by_name = {sat.name: sat for sat in available_satellites}
-    # print available_satellites[0]
     actual_sat_number_to_counter = label_satellites_properly(sorted_planes, len(available_satellites_by_name))
 
     ground_stations = read_gs("../mobility/ground_stations.txt")
@@ -109,12 +102,33 @@ def main():
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=available_satellites_by_name, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix)
     log_info_for_controller(t.utc_strftime(), topg["links"], topg["management_interface"]);
-    #x = threading.Thread(target=controller_thread, args=(topg["links"],available_satellites,ground_stations,))
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     net.start()
     topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
-    #x.start()
     CLI( net)
+    # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
+    # UDPSocket.bind(("", 20001))
+    # print "Mininet main listener is created ... "
+    # while(True):
+    #     bytesAddressPair = UDPSocket.recvfrom(1024)
+    #     print bytesAddressPair
+    #     recv_msg = updateTopologyMsg.c_m_update_topology()
+    #     recv_msg.ParseFromString(bytesAddressPair[0])
+    #     print recv_msg.command, recv_msg.node1_name, recv_msg.node2_name
+    #
+    #     if recv_msg.command == "deleteLink":
+    #         net_node1 = net.getNodeByName(recv_msg.node1_name)
+    #         net_node2 = net.getNodeByName(recv_msg.node2_name)
+    #         if net.linksBetween(net_node1, net_node2):
+    #             net.delLinkBetween(net_node1, net_node2)
+    #
+    #     if recv_msg.command == "addLink":
+    #         net_node1 = net.getNodeByName(recv_msg.node1_name)
+    #         net_node2 = net.getNodeByName(recv_msg.node2_name)
+    #         net_node1.cmd("ifconfig")
+    #         net_node2.cmd("ifconfig")
+    #         net.addLink(net_node1, net_node2, cls=TCLink)
+
     net.stop()
 
 setLogLevel('info')    # 'info' is normal; 'debug' is for when there are problems
