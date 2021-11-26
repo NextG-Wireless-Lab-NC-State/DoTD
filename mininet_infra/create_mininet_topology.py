@@ -141,7 +141,7 @@ class sat_network(Topo):
         for i in range(len(satellites)):
             sat_node = net.getNodeByName("sat"+str(i))
             node_m_ip = self.get_management_ip(intfs, "sat"+str(i)).strip()
-            print("added .....,"+node_m_ip+" \n")
+            print("added .....,"+node_m_ip)
             sat_node.cmd("python ../comm_protocol/satellite_agent.py "+node_m_ip+ " &")
 
         for i in range(len(ground_stations)):

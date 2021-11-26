@@ -68,8 +68,9 @@ def get_link_intfs_ips(node1, node2, links, list_of_Intf_IPs):
             n1n2Link = link
             break
 
+    print n1n2Link
     linkIntf1, linkIntf2 = n1n2Link.split(":")
-    print linkIntf1, linkIntf2
+    # print linkIntf1, linkIntf2
     for intf_IP in list_of_Intf_IPs:
         if intf_IP["Interface"] == linkIntf1:
             link_intfs_ips.append(intf_IP)

@@ -66,33 +66,77 @@ def crtl_mininet_ip_assignment(list_of_Intf_IPs, nodes_mgnt_intf):
         command_message = create_message_to_nodes("Assign IP", sat, "ifconfig", [intf_ips["Interface"], intf_ips["IP"]])
         serverAddressPort=(str(ip_addr.strip()), 20001)
         send_command(command_message, serverAddressPort)
+        print "Assign IP message is sent to "+str(sat)+" with IP address "+intf_ips["IP"]+" on interface = "+intf_ips["Interface"]
         time.sleep(0.02)
 
-def crtl_mininet_update_topology(gsl_changes, links, list_of_Intf_IPs):
+def available_interface(node, links):
+    # print node
+    maximum_interface_number = 0
+    for link in links:
+        if node+"-" in link:
+            sublink1, sublink2 = link.split(":")
+            if node in sublink1:
+                if int(sublink1.split("-")[1][3:]) > maximum_interface_number:
+                    maximum_interface_number = int(sublink1.split("-")[1][3:])
+            if node in sublink2:
+                if int(sublink2.split("-")[1][3:]) > maximum_interface_number:
+                    maximum_interface_number = int(sublink2.split("-")[1][3:])
+    return maximum_interface_number
+
+def update_links(links, node1, node2, action):
+    found = 0
+    if action == "delete":
+        found = -1
+        for link in links:
+            if node1 in link and node2 in link:
+                links.remove(link)
+                found = 0
+                print "[Update links] The following link "+link+" is removed from the links list"
+    elif action == "add":
+        node1_ava_interface = available_interface(node1, links)+1
+        node2_ava_interface = available_interface(node2, links)+1
+        new_link = node1+"-eth"+str(node1_ava_interface)+":"+node2+"-eth"+str(node2_ava_interface)
+        links.append(new_link)
+        print "[Update links] The following link "+new_link+" is added to the links list"
+
+    if found == -1:
+        print "Error -- "+node1+" and "+node2+" link is not found. check the links list between mininet and controller"
+        exit()
+
+    return links
+
+def crtl_mininet_update_topology(gsl_changes, links, list_of_Intf_IPs, nodes_mgnt_intf):
     for i in range(len(gsl_changes)):
+        link_intfs_ips = get_link_intfs_ips("sat"+str(gsl_changes[i][1]), "gs"+str(gsl_changes[i][0]), links, list_of_Intf_IPs)
+
         command_message = create_message_to_mininet("deleteLink", "sat"+str(gsl_changes[i][1]), "gs"+str(gsl_changes[i][0]))
         serverAddressPort=("131.227.207.216", 20001)
         send_command(command_message, serverAddressPort)
+        links = update_links(links, "sat"+str(gsl_changes[i][1]), "gs"+str(gsl_changes[i][0]), "delete")
 
         command_message = create_message_to_mininet("addLink", "sat"+str(gsl_changes[i][2]), "gs"+str(gsl_changes[i][0]))
         serverAddressPort=("131.227.207.216", 20001)
         send_command(command_message, serverAddressPort)
+        links = update_links(links, "sat"+str(gsl_changes[i][2]), "gs"+str(gsl_changes[i][0]), "add")
+        time.sleep(0.01)
+        # for link in links:
+        #     if "sat"+str(gsl_changes[i][1]) in link and "gs"+str(gsl_changes[i][0]) in link:
 
-        for link in links:
-            if "sat"+str(gsl_changes[i][1]) in link and "gs"+str(gsl_changes[i][0]) in link:
-                link_intfs_ips = get_link_intfs_ips("sat"+str(gsl_changes[i][1]), "gs"+str(gsl_changes[i][0]), links, list_of_Intf_IPs)
-                print link_intfs_ips
 
-    # for i in range(len(gsl_changes)):
-    #     command_message = create_message_to_mininet("addLink", "sat"+str(gsl_changes[i][2]), "gs"+str(gsl_changes[i][0]))
-    #     serverAddressPort=("131.227.207.216", 20001)
-    #     send_command(command_message, serverAddressPort)
-    #
-    #     for link in links:
-    #         if "sat"+str(gsl_changes[i][1]) in link and "gs"+str(gsl_changes[i][0]) in link:
-    #             link_intfs_ips = get_link_intfs_ips("sat"+str(gsl_changes[i][1]), "gs"+str(gsl_changes[i][0]), links, list_of_Intf_IPs)
-    #             print link_intfs_ips
-        # command_message = create_message_to_nodes("Assign IP", "sat"+str(gsl_changes[i][2]), [intf_ips["Interface"], intf_ips["IP"]])
+        # update the ip address for the satellite node
+        new_intf_name = "sat"+str(gsl_changes[i][2])+"-eth"+str(available_interface("sat"+str(gsl_changes[i][2]), links))
+        command_message = create_message_to_nodes("Assign IP", "sat"+str(gsl_changes[i][2]), "ifconfig", [new_intf_name, link_intfs_ips[0]["IP"]])
+        ip_addr = get_management_ip(nodes_mgnt_intf, "sat"+str(gsl_changes[i][2]))
+        serverAddressPort=(str(ip_addr.strip()), 20001)
+        send_command(command_message, serverAddressPort)
+        time.sleep(0.01)
+        # update the ip address for the ground_station node
+        new_intf_name = "gs"+str(gsl_changes[i][0])+"-eth"+str(available_interface("gs"+str(gsl_changes[i][0]), links))
+        command_message = create_message_to_nodes("Assign IP", "gs"+str(gsl_changes[i][0]), "ifconfig", [new_intf_name, link_intfs_ips[1]["IP"]])
+        ip_addr = get_management_ip(nodes_mgnt_intf, "gs"+str(gsl_changes[i][0]))
+        serverAddressPort=(str(ip_addr.strip()), 20001)
+        send_command(command_message, serverAddressPort)
+        time.sleep(0.01)
 
 def main():
     N = 3
@@ -132,9 +176,14 @@ def main():
     G = graph_add_ISLs(G, available_satellites_by_name, actual_sat_number_to_counter, sorted_planes, 0, 0, "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT", mininetExtract["used_time"])
     G = graph_add_GSLs(G, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, mininetExtract["used_time"], 12, "BASED_ON_DISTANCE_ONLY_GRAPH")
 
+    for link in mininetExtract["links"]:
+        print link
+
+    for lm in G["GSL_Connectivity"]:
+        print lm
     available_ips = generate_ips_for_constellation()
     list_of_Intf_IPs = assign_ips_for_constellation(mininetExtract["links"], available_ips)
-    # crtl_mininet_ip_assignment(list_of_Intf_IPs, mininetExtract2)
+    crtl_mininet_ip_assignment(list_of_Intf_IPs, mininetExtract2)
 
     while(True):
         ts = load.timescale()
@@ -144,5 +193,5 @@ def main():
         G = graph_add_GSLs(G["Graph"], available_satellites_by_name, actual_sat_number_to_counter, ground_stations, t, 12, "BASED_ON_DISTANCE_ONLY_GRAPH")
         gsls_differences = get_differences_in_GSLs_between_iterations(old_gsls, G["GSL_Connectivity"])
         print gsls_differences
-        crtl_mininet_update_topology(gsls_differences, mininetExtract["links"], list_of_Intf_IPs)
+        crtl_mininet_update_topology(gsls_differences, mininetExtract["links"], list_of_Intf_IPs, mininetExtract2)
 main()

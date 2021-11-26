@@ -62,9 +62,10 @@ def main():
     #print "hello"
     while(True):
         bytesAddressPair = UDPSocket.recvfrom(1024)
-        print bytesAddressPair
+        # print bytesAddressPair
         recv_msg = ControlMsg.control_msg()
         recv_msg.ParseFromString(bytesAddressPair[0])
+        print "Received "+recv_msg.cmd+" for "+recv_msg.cmd_receiver
         t = threading.Thread(target=check_message, args=(recv_msg.cmd_receiver, recv_msg.cmd_param, recv_msg.cmd))
     	t.start()
 

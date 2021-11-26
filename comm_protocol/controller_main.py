@@ -43,7 +43,7 @@ def create_message_to_mininet(command, node1, node2):
     return send_msg.SerializeToString()
 
 def send_command(message_to_send, serverAddressPort):
-    print serverAddressPort
+    # print serverAddressPort
     UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
 
