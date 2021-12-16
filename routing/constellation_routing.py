@@ -91,6 +91,12 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
     for route in static_routes:
         if len(route) > 2:
             src_node, next_hop_node, dest_node, last_hop_node = (route[0]%len(satellites)), (route[1]%len(satellites)), (route[len(route)-1]%len(satellites)), (route[len(route)-2]%len(satellites))
+
+            src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node)
+            next_hop_node = "sat"+str(next_hop_node) if next_hop_node < len(satellites) else "gs"+str(next_hop_node)
+            dest_node = "sat"+str(dest_node) if dest_node < len(satellites) else "gs"+str(dest_node)
+            last_hop_node = "sat"+str(last_hop_node) if last_hop_node < len(satellites) else "gs"+str(last_hop_node)
+
             src_node_intf = ""
             dest_node_intf= ""
             next_h_node_intf = ""
