@@ -118,7 +118,7 @@ def main():
     # print "Initial routing took ", end-start, "ms"
 
     initial_routes = []
-    static_routing_update_commands(initial_routes, links, list_of_Intf_IPs)
+    static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
     exit()
     for route in initial_routes:
         parameters = get_static_route_parameter(route, links, list_of_Intf_IPs)

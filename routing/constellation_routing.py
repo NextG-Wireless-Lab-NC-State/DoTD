@@ -86,18 +86,18 @@ def static_routing(G, destinations, num_of_satellites, num_of_ground_stations, n
 
     return static_routes
 
-def static_routing_update_commands(static_routes, links, list_of_Intf_IPs):
+def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satellites):
     static_routes = [[1367, 1368, 1369, 1370, 1371, 1358, 1335, 1334, 1333, 1316, 1297, 1296, 1295, 1278, 1237, 1666]]
     for route in static_routes:
         if len(route) > 2:
-            src_node, next_hop_node, dest_node, last_hop_node = route[0], route[1], route[len(route)-1], route[len(route)-2]
+            src_node, next_hop_node, dest_node, last_hop_node = (route[0]%len(satellites)), (route[1]%len(satellites)), (route[len(route)-1]%len(satellites)), (route[len(route)-2]%len(satellites))
             src_node_intf = ""
             dest_node_intf= ""
             next_h_node_intf = ""
             last_h_node_intf = ""
 
             for link in links:
-                if ""+str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
+                if str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
                     intfs = link.split(":")
                     print intfs
                     if str(src_node) in intfs[0] and str(next_hop_node) in intfs[1]:
