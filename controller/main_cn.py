@@ -81,6 +81,8 @@ def main():
     links = get_links("links_log.txt")
     list_of_Intf_IPs = get_intf("constellation_ip_assignment.txt")
 
+    print len(links), len(list_of_Intf_IPs)
+
     satellites_sorted_in_orbits = []        #carry satellites names according to STARLINK naming conversion
     for i in range(number_of_orbits):
         satellites_in_orbit = []
@@ -108,7 +110,7 @@ def main():
     connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
-
+    exit()
 
     start = round(time.time()*1000)
     initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
@@ -116,7 +118,27 @@ def main():
     end = round(time.time()*1000)
     print "Initial routing took ", end-start, "ms"
 
-    static_routing_update_commands(initial_routes, links, list_of_Intf_IPs)
+    for route in initial_routes:
+        parameters = get_static_route_parameter(route, links, list_of_Intf_IPs)
+    # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs)
+
+        msg                         = MCMsgs.mega_constellation_msg()
+        msg.message_type            =  2
+        msg.message_command         = "ip route"
+        msg.message_receiver        = "all"
+        msg.route_update_type       = 0
+
+        msg.route_destination       = parameters[0]
+        msg.route_next_hop          = parameters[1]
+        msg.route_out_interface     = parameters[2]
+
+        msg.change_route_time       = timestamp
+
+        serverAddressPort=("127.0.0.1", 20001)
+        UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
+        UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
+        UDPClientSocket.close()
 
         # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))
