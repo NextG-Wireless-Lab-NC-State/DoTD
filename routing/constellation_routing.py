@@ -17,6 +17,42 @@ from multiprocessing import Process, Manager, Pool
 
 def static_routing_worker(args):
     (
+        G,
+        p,
+        q
+    ) = args
+
+    new_path = []
+    path_length, path_nodes, negative_cycle = bf.bellman_ford(G, source=p, target=q, weight="weight")
+    new_path.append(path_nodes)
+
+    return new_path
+
+def initial_routing(satellites, ground_stations, connectivity_matrix):
+    mega_constellation_graph = nx.Graph()
+    for n in range(len(satellites)+len(ground_stations)):
+        mega_constellation_graph.add_node(n)        # nodes where n > len(satellites) are ground stations
+
+    for i in range(len(connectivity_matrix)):
+        for j in range(len(connectivity_matrix[i])):
+            if connectivity_matrix[i][j] == 1:
+                mega_constellation_graph.add_edge(i, j, weight=1)
+
+    static_routing_list_args = []
+    print len(mega_constellation_graph.edges())
+    for p in range(len(satellites)+len(ground_stations)):
+        for q in range(len(satellites)+len(ground_stations)):
+            static_routing_list_args.append((mega_constellation_graph, p, q))
+
+    pool = Pool(23)
+    static_routes = pool.map(static_routing_worker, static_routing_list_args)
+    pool.close()
+    pool.join()
+
+    return static_routes
+
+def static_routing_worker(args):
+    (
         Gr,
         source,
         destination
@@ -55,5 +91,26 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs):
             intfs_ips_first_link = get_link_intfs_ips(src_node, next_hop_node, links, list_of_Intf_IPs)
             intfs_ips_last_link  = get_link_intfs_ips(last_hop_node, dest_node, links, list_of_Intf_IPs)
 
-            cmd_on_src_node  = "ip route add "+get_network_address(intfs_ips_last_link[1]["IP"])+"/28 via "+intfs_ips_first_link[1]["IP"]+" dev "+intfs_ips_first_link[0]["Interface"]+" & "
-            cmd_on_dest_node = "ip route add "+get_network_address(intfs_ips_first_link[0]["IP"])+"/28 via "+intfs_ips_last_link[0]["IP"]+" dev "+intfs_ips_last_link[1]["Interface"]+" & "
+            for link in links:
+                if src_node+str("-") in link and next_hop_node+str("-") in link:
+                    intfs = link.split(":")
+                    if src_node in intfs[0] and next_hop_node in intfs[1]:
+                        src_node_intf = intfs[0]
+                        next_h_node_intf = intfs[1]
+                    else if src_node in intfs[1] and next_hop_node in intfs[0]:
+                        src_node_intf = intfs[1]
+                        next_h_node_intf = intfs[0]
+
+                if dest_node+str("-") in link and last_hop_node+str("-") in link:
+                    intfs = link.split(":")
+                    if dest_node in intfs[0] and last_hop_node in intfs[1]:
+                        dest_node_intf = intfs[0]
+                        last_h_node_intf = intfs[1]
+                    else if dest_node in intfs[1] and last_hop_node in intfs[0]:
+                        dest_node_intf = intfs[1]
+                        last_h_node_intf = intfs[0]
+
+            cmd_on_src_node  = "ip route add "+get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28 via "+get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)+" dev "+src_node_intf
+            cmd_on_dest_node = "ip route add "+get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs))+"/28 via "+get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)+" dev "+dest_node_intf
+            print cmd_on_src_node
+            print cmd_on_dest_node

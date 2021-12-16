@@ -78,3 +78,8 @@ def get_link_intfs_ips(node1, node2, links, list_of_Intf_IPs):
             link_intfs_ips.append(intf_IP)
 
     return link_intfs_ips
+
+def get_node_intf_ip(interface, list_of_Intf_IPs):
+    for intf_IP in list_of_Intf_IPs:
+        if intf_IP["Interface"] == interface:
+            return intf_IP["IP"]

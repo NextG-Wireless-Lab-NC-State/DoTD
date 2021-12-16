@@ -15,3 +15,7 @@ from .read_real_tles import (
 	sort_satellites_within_plane,
 	resolve_unassigned_satellites
 )
+from .read_live_tles import (
+	get_orbital_planes,
+	sort_satellites_in_orbit
+)

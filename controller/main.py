@@ -34,6 +34,7 @@ from mobility.mobility_utils import *
 from mobility.read_gs import *
 from mininet_infra.create_mininet_topology import *
 from routing.routing_utils import *
+from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
 def log_info_for_controller(current_time, links, m_intfs):
@@ -73,6 +74,8 @@ def main():
             available_satellites.append(satellites_by_name[str(satellite)])
 
     available_satellites_by_name = {sat.name: sat for sat in available_satellites}
+
+    # convert satellite names from STARLINK-xxxx to just a number
     actual_sat_number_to_counter = label_satellites_properly(sorted_planes, len(available_satellites_by_name))
 
     ground_stations = read_gs("../mobility/ground_stations.txt")
@@ -88,23 +91,20 @@ def main():
     connectivity_matrix = mininet_add_GSLs(connectivity_matrix, available_satellites_by_name, actual_sat_number_to_counter, ground_stations, t, 12, "BASED_ON_DISTANCE_ONLY_MININET")
 
     # available_ips = generate_ips_for_constellation()
-
-    ############## For test purposes
-    # G = nx.Graph()
-    # for sat in available_satellites_by_name:
-    #     G.add_node(sat)
-    #
-    # G = graph_add_ISLs(G, available_satellites_by_name, sorted_planes, 0, 0, "SAME_ORBIT_AND_BASED_ON_DISTANCE_FOR_INTER_ORBIT", t)
-    # for edge in G.edges():
-    #     print edge
-    ##############
-
+    initial_routes = initial_routing(available_satellites_by_name, ground_stations, connectivity_matrix)
+    for route in initial_routes:
+        print route
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=available_satellites_by_name, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix)
-    log_info_for_controller(t.utc_strftime(), topg["links"], topg["management_interface"]);
+    # log_info_for_controller(t.utc_strftime(), topg["links"], topg["management_interface"]);
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     net.start()
-    topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
+    # topology.initial_ipv4_assignment_for_interfaces(net, available_ips)
+    # print len(connectivity_matrix)
+
+    # for route in initial_routes:
+    #     print route
+    # topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
     CLI( net)
     # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))

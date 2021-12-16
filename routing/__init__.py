@@ -8,5 +8,7 @@ from .routing_utils import (
 from .constellation_routing import (
 	static_routing_worker,
 	static_routing_update_commands,
-	static_routing
+	static_routing,
+	initial_routing,
+	static_routing_worker
 )

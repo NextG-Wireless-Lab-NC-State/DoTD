@@ -55,6 +55,7 @@ def sort_satellites_within_plane(cur_planes, satellites_by_name, t):
 			min_dist = 1000000000000000
 			next_hop = -1
 			for sats in cur_planes[value]:
+				# print sats
 				next_sat = satellites_by_name[str(sats)]
 				if next_sat.name not in visited_sats:
 					min_d = distance_between_two_satellites(first_sat, next_sat,t)
@@ -106,8 +107,8 @@ def label_satellites_properly(sorted_planes_by_values, num_of_satellites):
 			actual_sat_number_to_counter[count] = values
 			count += 1
 
-	for v in range(len(actual_sat_number_to_counter)):
-		print v, actual_sat_number_to_counter[v]
+	# for v in range(len(actual_sat_number_to_counter)):
+	# 	print v, actual_sat_number_to_counter[v]
 
 	return actual_sat_number_to_counter
 #
