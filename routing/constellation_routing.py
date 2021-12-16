@@ -97,23 +97,27 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs):
             last_h_node_intf = ""
 
             for link in links:
-                print link
-                if str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
+                if ""+str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
                     intfs = link.split(":")
                     print intfs
                     if str(src_node) in intfs[0] and str(next_hop_node) in intfs[1]:
+                        print "here"
                         src_node_intf = intfs[0]
                         next_h_node_intf = intfs[1]
                     elif str(src_node) in intfs[1] and str(next_hop_node) in intfs[0]:
+                        print "here2"
                         src_node_intf = intfs[1]
                         next_h_node_intf = intfs[0]
 
                 if str(dest_node)+str("-") in link and str(last_hop_node)+str("-") in link:
                     intfs = link.split(":")
+                    print intfs
                     if str(dest_node) in intfs[0] and str(last_hop_node) in intfs[1]:
+                        print "here3"
                         dest_node_intf = intfs[0]
                         last_h_node_intf = intfs[1]
                     elif str(dest_node) in intfs[1] and str(last_hop_node) in intfs[0]:
+                        print "here4"
                         dest_node_intf = intfs[1]
                         last_h_node_intf = intfs[0]
 
