@@ -97,7 +97,7 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs):
                     if src_node in intfs[0] and next_hop_node in intfs[1]:
                         src_node_intf = intfs[0]
                         next_h_node_intf = intfs[1]
-                    else if src_node in intfs[1] and next_hop_node in intfs[0]:
+                    elif src_node in intfs[1] and next_hop_node in intfs[0]:
                         src_node_intf = intfs[1]
                         next_h_node_intf = intfs[0]
 
@@ -106,7 +106,7 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs):
                     if dest_node in intfs[0] and last_hop_node in intfs[1]:
                         dest_node_intf = intfs[0]
                         last_h_node_intf = intfs[1]
-                    else if dest_node in intfs[1] and last_hop_node in intfs[0]:
+                    elif dest_node in intfs[1] and last_hop_node in intfs[0]:
                         dest_node_intf = intfs[1]
                         last_h_node_intf = intfs[0]
 

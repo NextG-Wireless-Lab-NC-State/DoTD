@@ -123,7 +123,7 @@ def main():
 
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=link_chara["throughput_matrix"], link_latency=link_chara["latency_matrix"])
-    log_info_for_controller(t.utc_strftime(), topg["links"], topg["management_interface"]);
+    log_info_for_controller(t.utc_strftime(), topg["isl_gls_links"], topg["management_interface"]);
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     net.start()
     list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(net, available_ips)

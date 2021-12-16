@@ -257,7 +257,7 @@ def calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_
 
     for i in range(len(connectivity_matrix)):
         for j in range(len(connectivity_matrix[i])):
-            print i, j
+            # print i, j
             # print satellites_by_index[i], satellites_by_index[j]
             if connectivity_matrix[i][j] == 1 and i < len(satellites_by_index) and j < len(satellites_by_index):
                 distance_meters             = distance_between_two_satellites(satellites_by_name[str(satellites_by_index[i])], satellites_by_name[str(satellites_by_index[j])], t)
