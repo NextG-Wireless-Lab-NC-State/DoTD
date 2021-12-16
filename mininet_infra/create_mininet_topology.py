@@ -173,21 +173,22 @@ class sat_network(Topo):
         nodes = net.hosts
         for node in nodes:
             for intf in node.intfList():
-                if intf.link:
-                    intf1, intf2 = intf.link.intf1, intf.link.intf2
-                    network_address = self.get_free_IP(addresses_pool)
-                    if network_address != -1:
-                        oct1, oct2, oct3, oct4 = network_address.split('.');
-                        intf1.setIP(oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+1)+"/28")
-                        intf2.setIP(oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+2)+"/28")
+                if "eth0" not in intf.name:
+                    if intf.link:
+                        intf1, intf2 = intf.link.intf1, intf.link.intf2
+                        network_address = self.get_free_IP(addresses_pool)
+                        if network_address != -1:
+                            oct1, oct2, oct3, oct4 = network_address.split('.');
+                            intf1.setIP(oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+1)+"/28")
+                            intf2.setIP(oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+2)+"/28")
 
-                        # Assign the default gw to the ground stations
-                        if "gs" in node.name:
-                            debug("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth0", intf2.IP())
-                            node.cmd("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth0");
-                    else:
-                        print "[Create Sat Network -- GSL] No Available IPs to assign"
-                        exit()
+                            # Assign the default gw to the ground stations
+                            if "gs" in node.name:
+                                debug("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth0", intf2.IP())
+                                node.cmd("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth0");
+                        else:
+                            print "[Create Sat Network -- GSL] No Available IPs to assign"
+                            exit()
 
             self.rp_disable(node)
 
