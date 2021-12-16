@@ -97,6 +97,7 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
             last_h_node_intf = ""
             print src_node,next_hop_node, dest_node, last_hop_node
             for link in links:
+                print link
                 if str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
                     intfs = link.split(":")
                     print intfs
