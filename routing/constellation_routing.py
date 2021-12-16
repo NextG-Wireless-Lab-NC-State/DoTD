@@ -90,12 +90,12 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
     static_routes = [[1367, 1368, 1369, 1370, 1371, 1358, 1335, 1334, 1333, 1316, 1297, 1296, 1295, 1278, 1237, 1666]]
     for route in static_routes:
         if len(route) > 2:
-            src_node, next_hop_node, dest_node, last_hop_node = (route[0]%len(satellites)), (route[1]%len(satellites)), (route[len(route)-1]%len(satellites)), (route[len(route)-2]%len(satellites))
+            src_node, next_hop_node, dest_node, last_hop_node = route[0], route[1], route[len(route)-1], route[len(route)-2]
 
-            src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node)
-            next_hop_node = "sat"+str(next_hop_node) if next_hop_node < len(satellites) else "gs"+str(next_hop_node)
-            dest_node = "sat"+str(dest_node) if dest_node < len(satellites) else "gs"+str(dest_node)
-            last_hop_node = "sat"+str(last_hop_node) if last_hop_node < len(satellites) else "gs"+str(last_hop_node)
+            src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node%len(satellites))
+            next_hop_node = "sat"+str(next_hop_node) if next_hop_node < len(satellites) else "gs"+str(next_hop_node%len(satellites))
+            dest_node = "sat"+str(dest_node) if dest_node < len(satellites) else "gs"+str(dest_node%len(satellites))
+            last_hop_node = "sat"+str(last_hop_node) if last_hop_node < len(satellites) else "gs"+str(last_hop_node%len(satellites))
 
             src_node_intf = ""
             dest_node_intf= ""
