@@ -15,6 +15,10 @@ import bellmanford as bf
 import itertools
 from multiprocessing import Process, Manager, Pool
 
+import sys
+sys.path.append("./")
+from routing.routing_utils import *
+
 def static_routing_worker(args):
     (
         G,

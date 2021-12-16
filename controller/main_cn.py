@@ -27,7 +27,6 @@ from mobility.read_live_tles import *
 from mobility.mobility_utils import *
 from mobility.read_gs import *
 from mininet_infra.create_mininet_topology import *
-from routing.routing_utils import *
 from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
