@@ -110,17 +110,20 @@ def main():
     connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
+
+    #
+    # start = round(time.time()*1000)
+    # initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
+    #
+    # end = round(time.time()*1000)
+    # print "Initial routing took ", end-start, "ms"
+
+    initial_routes = []
+    static_routing_update_commands(initial_routes, links, list_of_Intf_IPs)
     exit()
-
-    start = round(time.time()*1000)
-    initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
-
-    end = round(time.time()*1000)
-    print "Initial routing took ", end-start, "ms"
-
     for route in initial_routes:
         parameters = get_static_route_parameter(route, links, list_of_Intf_IPs)
-    # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs)
+    #
 
         msg                         = MCMsgs.mega_constellation_msg()
         msg.message_type            =  2
