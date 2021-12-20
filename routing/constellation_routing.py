@@ -87,10 +87,10 @@ def static_routing(G, destinations, num_of_satellites, num_of_ground_stations, n
     return static_routes
 
 def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satellites):
-    # static_routes = [[1367, 1368, 1369, 1370, 1371, 1358, 1335, 1334, 1333, 1316, 1297, 1296, 1295, 1278, 1237, 1666]]
     for route in static_routes:
-        if len(route) > 2:
-            src_node, next_hop_node, dest_node, last_hop_node = route[0], route[1], route[len(route)-1], route[len(route)-2]
+        current_route = route[0];
+        if len(current_route) > 2:
+            src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
 
             src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node%len(satellites))
             next_hop_node = "sat"+str(next_hop_node) if next_hop_node < len(satellites) else "gs"+str(next_hop_node%len(satellites))
@@ -101,30 +101,23 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
             dest_node_intf= ""
             next_h_node_intf = ""
             last_h_node_intf = ""
-            print src_node,next_hop_node, dest_node, last_hop_node
+
             for link in links:
-                print link
                 if str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
                     intfs = link.split(":")
-                    print intfs
                     if str(src_node) in intfs[0] and str(next_hop_node) in intfs[1]:
-                        print "here"
                         src_node_intf = intfs[0]
                         next_h_node_intf = intfs[1]
                     elif str(src_node) in intfs[1] and str(next_hop_node) in intfs[0]:
-                        print "here2"
                         src_node_intf = intfs[1]
                         next_h_node_intf = intfs[0]
 
                 if str(dest_node)+str("-") in link and str(last_hop_node)+str("-") in link:
                     intfs = link.split(":")
-                    print intfs
                     if str(dest_node) in intfs[0] and str(last_hop_node) in intfs[1]:
-                        print "here3"
                         dest_node_intf = intfs[0]
                         last_h_node_intf = intfs[1]
                     elif str(dest_node) in intfs[1] and str(last_hop_node) in intfs[0]:
-                        print "here4"
                         dest_node_intf = intfs[1]
                         last_h_node_intf = intfs[0]
 
@@ -138,30 +131,56 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
 
 
 def get_static_route_parameter(route, links, list_of_Intf_IPs):
+    parameters = []
+    current_route = route[0];
+    if len(current_route) > 2:
+        src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
 
-    if len(route) > 2:
-        src_node, next_hop_node, dest_node, last_hop_node = route[0], route[1], route[len(route)-1], route[len(route)-2]
+        src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node%len(satellites))
+        next_hop_node = "sat"+str(next_hop_node) if next_hop_node < len(satellites) else "gs"+str(next_hop_node%len(satellites))
+        dest_node = "sat"+str(dest_node) if dest_node < len(satellites) else "gs"+str(dest_node%len(satellites))
+        last_hop_node = "sat"+str(last_hop_node) if last_hop_node < len(satellites) else "gs"+str(last_hop_node%len(satellites))
+
+        src_node_intf = ""
+        dest_node_intf= ""
+        next_h_node_intf = ""
+        last_h_node_intf = ""
 
         for link in links:
-            if src_node+str("-") in link and next_hop_node+str("-") in link:
+            if str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
                 intfs = link.split(":")
-                if src_node in intfs[0] and next_hop_node in intfs[1]:
+                if str(src_node) in intfs[0] and str(next_hop_node) in intfs[1]:
                     src_node_intf = intfs[0]
                     next_h_node_intf = intfs[1]
-                elif src_node in intfs[1] and next_hop_node in intfs[0]:
+                elif str(src_node) in intfs[1] and str(next_hop_node) in intfs[0]:
                     src_node_intf = intfs[1]
                     next_h_node_intf = intfs[0]
 
-            if dest_node+str("-") in link and last_hop_node+str("-") in link:
+            if str(dest_node)+str("-") in link and str(last_hop_node)+str("-") in link:
                 intfs = link.split(":")
-                if dest_node in intfs[0] and last_hop_node in intfs[1]:
+                if str(dest_node) in intfs[0] and str(last_hop_node) in intfs[1]:
                     dest_node_intf = intfs[0]
                     last_h_node_intf = intfs[1]
-                elif dest_node in intfs[1] and last_hop_node in intfs[0]:
+                elif str(dest_node) in intfs[1] and str(last_hop_node) in intfs[0]:
                     dest_node_intf = intfs[1]
                     last_h_node_intf = intfs[0]
 
-        cmd_on_src_node  = "ip route add "+get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28 via "+get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)+" dev "+src_node_intf
-        cmd_on_dest_node = "ip route add "+get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs))+"/28 via "+get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)+" dev "+dest_node_intf
-        print cmd_on_src_node
-        print cmd_on_dest_node
+        dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28"
+        next_hop_ip = get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)
+        out_interface = src_node_intf
+
+        src_nw_ip = get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs))+"/28"
+        last_hop_ip = get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)
+        out_interface_2 = dest_node_intf
+
+        parameters.append(src_node)
+        parameters.append(dest_nw_ip)
+        parameters.append(next_hop_ip)
+        parameters.append(out_interface)
+
+        parameters.append(dest_node)
+        parameters.append(src_nw_ip)
+        parameters.append(last_hop_ip)
+        parameters.append(out_interface_2)
+
+    return parameters

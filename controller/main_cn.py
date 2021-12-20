@@ -112,14 +112,15 @@ def main():
 
 
     start = round(time.time()*1000)
-    initial_routes = initial_routing(satellites_by_index[:10], ground_stations, connectivity_matrix)
+    sats = satellites_by_index[10]
+    initial_routes = initial_routing(sats, ground_stations, connectivity_matrix)
 
     end = round(time.time()*1000)
     print "Initial routing took ", end-start, "ms"
 
     # initial_routes = []
-    static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
-    exit()
+    # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
+    # exit()
     for route in initial_routes:
         parameters = get_static_route_parameter(route, links, list_of_Intf_IPs)
     #
@@ -127,21 +128,40 @@ def main():
         msg                         = MCMsgs.mega_constellation_msg()
         msg.message_type            =  2
         msg.message_command         = "ip route"
-        msg.message_receiver        = "all"
+        msg.message_receiver        = parameters[0]
         msg.route_update_type       = 0
 
-        msg.route_destination       = parameters[0]
-        msg.route_next_hop          = parameters[1]
-        msg.route_out_interface     = parameters[2]
+        msg.route_destination       = parameters[1]
+        msg.route_next_hop          = parameters[2]
+        msg.route_out_interface     = parameters[3]
 
-        msg.change_route_time       = timestamp
+        msg.change_route_time       = t.utc_strftime()
 
+        print msg
         serverAddressPort=("127.0.0.1", 20001)
         UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
         UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
         UDPClientSocket.close()
 
+        msg                         = MCMsgs.mega_constellation_msg()
+        msg.message_type            =  2
+        msg.message_command         = "ip route"
+        msg.message_receiver        = parameters[4]
+        msg.route_update_type       = 0
+
+        msg.route_destination       = parameters[5]
+        msg.route_next_hop          = parameters[6]
+        msg.route_out_interface     = parameters[7]
+
+        msg.change_route_time       = t.utc_strftime()
+
+        print msg
+        serverAddressPort=("127.0.0.1", 20001)
+        UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
+        UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
+        UDPClientSocket.close()
         # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))
     # print "Mininet main listener is created ... "
