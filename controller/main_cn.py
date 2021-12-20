@@ -130,8 +130,8 @@ def main():
 
 
     start = round(time.time()*1000)
-    sats = satellites_by_index[10]
-    initial_routes = initial_routing(sats, ground_stations, connectivity_matrix)
+    # sats = satellites_by_index[10]
+    initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
 
     end = round(time.time()*1000)
     print "Initial routing took ", end-start, "ms"
