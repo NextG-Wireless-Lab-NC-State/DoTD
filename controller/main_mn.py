@@ -142,6 +142,7 @@ def main():
     # for route in initial_routes:
     #     print route
     # topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
+    topology.startworker(net, satellites_by_index, ground_stations, topg["management_interface"])
     CLI( net)
     # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))

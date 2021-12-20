@@ -256,3 +256,10 @@ class sat_network(Topo):
 
         mininet_topology_listner = threading.Thread(target=self.handle_topology_updates_commands, args=(net,))
         mininet_topology_listner.start()
+
+    def startworker(self, net, satellites, ground_stations, intfs):
+        for i in range(len(satellites)):
+            sat_node = net.getNodeByName("sat"+str(i))
+            node_m_ip = self.get_management_ip(intfs, "sat"+str(i)).strip()
+            print("added .....,"+node_m_ip)
+            sat_node.cmd("python ../comm_protocol/satellite_worker.py &")

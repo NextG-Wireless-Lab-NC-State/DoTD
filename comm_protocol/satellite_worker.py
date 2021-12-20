@@ -114,15 +114,15 @@ def gsl_update_msg_handler_trial(satname, message_command, message_receiver, gs_
 
 def main():
     UDPSocket = connection_establishment("", 20001)
-    file1 = open('connectivity_matrix.txt', 'r')
-    Lines = file1.readlines()
-
-    conn_mat_size = 1451+100
-    connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
-
-    for line in Lines:
-        i, j, conn = line.split("\t")
-        connectivity_matrix[int(i)][int(j)] = int(conn)
+    # file1 = open('connectivity_matrix.txt', 'r')
+    # Lines = file1.readlines()
+    #
+    # conn_mat_size = 1451+100
+    # connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
+    #
+    # for line in Lines:
+    #     i, j, conn = line.split("\t")
+    #     connectivity_matrix[int(i)][int(j)] = int(conn)
 
     # actual_sat_number_to_counter = []
     # file3 = open('satellites_num.txt', 'r')
@@ -160,7 +160,8 @@ def main():
 
         if recv_msg.message_type == 2: # ROUTE_UPDATE
             t = threading.Thread(target=route_update_msg_handler, args=(recv_msg.message_command, recv_msg.message_receiver, recv_msg.route_update_type, recv_msg.route_destination, recv_msg.route_next_hop, recv_msg.route_out_interface))
-
+            t.start()
+            
         if recv_msg.message_type == 3: # GSL_UPDATE
             t = threading.Thread(target=gsl_update_msg_handler_trial, args=(sys.argv[1], recv_msg.message_command, recv_msg.message_receiver, recv_msg.gs_name, recv_msg.gs_ip, recv_msg.last_hop_satellite_name, recv_msg.last_hop_satellite_ip, recv_msg.change_route_time, connectivity_matrix, 1451))
             t.start()
