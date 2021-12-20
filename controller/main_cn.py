@@ -94,6 +94,7 @@ def main():
     orbital_data = get_orbital_planes("starlink.txt",1)
 
     t = get_time("time_log.txt")
+    print t.utc_strftime()
     links = get_links("links_log.txt")
     list_of_Intf_IPs = get_intf("constellation_ip_assignment.txt")
     list_of_mgnt_IPs = get_all_mgnt_interfaces("m_intf_log.txt")
@@ -130,8 +131,8 @@ def main():
 
 
     start = round(time.time()*1000)
-    # sats = satellites_by_index[10]
-    initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
+    sats = satellites_by_index[10]
+    initial_routes = initial_routing(sats, ground_stations, connectivity_matrix)
 
     end = round(time.time()*1000)
     print "Initial routing took ", end-start, "ms"
