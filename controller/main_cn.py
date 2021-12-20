@@ -125,7 +125,7 @@ def main():
     # exit()
     for route in initial_routes:
         if len(route[0]) > 2:
-            parameters = get_static_route_parameter(route, links, list_of_Intf_IPs)
+            parameters = get_static_route_parameter(route, links, list_of_Intf_IPs, satellites_by_index)
         #
 
             msg                         = MCMsgs.mega_constellation_msg()
