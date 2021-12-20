@@ -31,6 +31,21 @@ from mininet_infra.create_mininet_topology import *
 from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
+def get_all_mgnt_interfaces(filename):
+    mIntf_File = open(filename, 'r')
+    lines = mIntf_File.readlines()
+    m_intf = []
+
+    for i in range(len(lines)):
+	lines[i].split("\t")[0]
+        m_intf.append({"node": lines[i].split("\t")[0], "mgnt_ip": lines[i].split("\t")[1]})
+
+    return m_intf
+
+def get_management_ip(all_mgnt_ips, node):
+    for interface in all_mgnt_ips:
+	if interface["node"] == node:
+		return interface["mgnt_ip"]
 
 def get_time(filename):
     file = open(filename, 'r')
@@ -81,6 +96,7 @@ def main():
     t = get_time("time_log.txt")
     links = get_links("links_log.txt")
     list_of_Intf_IPs = get_intf("constellation_ip_assignment.txt")
+    list_of_mgnt_IPs = get_all_mgnt_interfaces("m_intf_log.txt")
 
     print len(links), len(list_of_Intf_IPs)
 
@@ -141,7 +157,8 @@ def main():
             msg.change_route_time       = t.utc_strftime()
 
             print msg
-            serverAddressPort=("127.0.0.1", 20001)
+            sendto_ip = get_management_ip(list_of_mgnt_IPs, parameters[0])
+            serverAddressPort=(str(sendto_ip.strip()), 20001)
             UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
             UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
             UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
@@ -160,7 +177,8 @@ def main():
             msg.change_route_time       = t.utc_strftime()
 
             print msg
-            serverAddressPort=("127.0.0.1", 20001)
+            sendto_ip = get_management_ip(list_of_mgnt_IPs, parameters[4])
+            serverAddressPort=(str(sendto_ip.strip()), 20001)
             UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
             UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
             UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
