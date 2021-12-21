@@ -261,18 +261,18 @@ def calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_
             # print satellites_by_index[i], satellites_by_index[j]
             if connectivity_matrix[i][j] == 1 and i < len(satellites_by_index) and j < len(satellites_by_index):
                 distance_meters             = distance_between_two_satellites(satellites_by_name[str(satellites_by_index[i])], satellites_by_name[str(satellites_by_index[j])], t)
-                latency_matrix[i][j]        = (distance_meters)/299792458.0                                           #speed of light
+                latency_matrix[i][j]        = ((distance_meters)/299792458.0)*1000                                           #speed of light
                 throughput_matrix[i][j]     = 20            #20Gbps
 
             if connectivity_matrix[i][j] == 1 and i > len(satellites_by_index) and j < len(satellites_by_index):
                 distance_meters             = distance_between_ground_station_satellite(ground_stations[i-len(satellites_by_index)], satellites_by_name[str(satellites_by_index[j])], t)
-                latency_matrix[i][j]        = (distance_meters)/299792458.0            #speed of light
+                latency_matrix[i][j]        = ((distance_meters)/299792458.0)*1000            #speed of light
                 snr                         = calc_gsl_snr_given_distance(distance_meters)
                 throughput_matrix[i][j]     = channnel_bandwidth_downlink*(math.log(1+snr)/math.log(2))
 
             if connectivity_matrix[i][j] == 1 and i < len(satellites_by_index) and j > len(satellites_by_index):
                 distance_meters             = distance_between_ground_station_satellite(ground_stations[j-len(satellites_by_index)], satellites_by_name[str(satellites_by_index[i])], t)
-                latency_matrix[i][j]        = (distance_meters)/299792458.0            #speed of light
+                latency_matrix[i][j]        = ((distance_meters)/299792458.0)*1000            #speed of light
                 snr                         = calc_gsl_snr_given_distance(distance_meters)
                 throughput_matrix[i][j]     = channnel_bandwidth_downlink*(math.log(1+snr)/math.log(2))
 

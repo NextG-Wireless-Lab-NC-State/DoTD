@@ -6,10 +6,7 @@ import os
 import sys
 import control_mgs_pb2 as ControlMsg
 import mc_msgs_pb2 as MCMsgs
-import networkx as nx
 
-import matplotlib.pyplot as plt
-import bellmanford as bf
 
 def connection_establishment(a_mgnt_IP, a_mgnt_port):
     UDPSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -60,60 +57,60 @@ def route_update_msg_handler(message_command, message_receiver, route_update_typ
         with open('logs/log-'+satname+'.txt', 'a') as f:
             process = subprocess.Popen(command, stdout=f)
 
-def gsl_update_msg_handler(message_command, message_receiver, gs_name, gs_ip, last_hop_satellite_name, last_hop_satellite_ip, change_route_time, connectivity_matrix, num_of_satellites):
-    # get the satellite name. That will be used later to check if the message is sent to this satellite
-    # list_of_interfaces = os.listdir('/sys/class/net/')
-    # satname = ""
-    # for i in range(0, len(list_of_interfaces)):
-    #     if "eth" in list_of_interfaces[i]:
-    #         satname = list_of_interfaces[i].split("-")[0]
+# def gsl_update_msg_handler(message_command, message_receiver, gs_name, gs_ip, last_hop_satellite_name, last_hop_satellite_ip, change_route_time, connectivity_matrix, num_of_satellites):
+#     # get the satellite name. That will be used later to check if the message is sent to this satellite
+#     # list_of_interfaces = os.listdir('/sys/class/net/')
+#     # satname = ""
+#     # for i in range(0, len(list_of_interfaces)):
+#     #     if "eth" in list_of_interfaces[i]:
+#     #         satname = list_of_interfaces[i].split("-")[0]
+#
+#     # if satname == message_receiver:
+#     start = round(time.time()*1000)
+#     G = nx.Graph()
+#     for n in range(num_of_satellites+1):  #the last node in the graph is the ground station that propagate the update
+#         G.add_node(n)
+#
+#     G.add_edge(gs_name, last_hop_satellite_name, weight=1)
+#     for i in range(len(connectivity_matrix)):
+#         for j in range(len(connectivity_matrix[i])):
+#             if connectivity_matrix[i][j] == 1:
+#                 G.add_edge(i, j, weight=1)
+#
+#     print len(G.edges())
+#     path_length, path_nodes, negative_cycle = bf.bellman_ford(G, source=message_receiver, target=gs_name, weight="weight")
+#     print path_nodes, path_length
+#     end = round(time.time()*1000)
+#     print end-start
 
-    # if satname == message_receiver:
-    start = round(time.time()*1000)
-    G = nx.Graph()
-    for n in range(num_of_satellites+1):  #the last node in the graph is the ground station that propagate the update
-        G.add_node(n)
-
-    G.add_edge(gs_name, last_hop_satellite_name, weight=1)
-    for i in range(len(connectivity_matrix)):
-        for j in range(len(connectivity_matrix[i])):
-            if connectivity_matrix[i][j] == 1:
-                G.add_edge(i, j, weight=1)
-
-    print len(G.edges())
-    path_length, path_nodes, negative_cycle = bf.bellman_ford(G, source=message_receiver, target=gs_name, weight="weight")
-    print path_nodes, path_length
-    end = round(time.time()*1000)
-    print end-start
-
-def gsl_update_msg_handler_trial(satname, message_command, message_receiver, gs_name, gs_ip, last_hop_satellite_name, last_hop_satellite_ip, change_route_time, connectivity_matrix, num_of_satellites):
-
-    if satname == message_receiver or message_receiver == "all":
-        gs = int(gs_name)+num_of_satellites
-        # print ("I am heree")
-        start = round(time.time()*1000)
-        G = nx.Graph()
-        for n in range(num_of_satellites+100):  #the last node in the graph is the ground station that propagate the update
-            G.add_node(n)
-
-        # print last_hop_satellite_name
-        G.add_edge(gs, int(last_hop_satellite_name), weight=1)
-        for i in range(len(connectivity_matrix)):
-            for j in range(len(connectivity_matrix[i])):
-                if connectivity_matrix[i][j] == 1:
-                    G.add_edge(i, j, weight=1)
-
-        print len(G.edges())
-        # path_length, path_nodes, negative_cycle = bf.bellman_ford(G, source=int(satname), target=gs, weight="weight")
-        path = nx.dijkstra_path(G, int(satname), int(gs))
-        end = round(time.time()*1000)
-        # print("["+str(satname)+"]["+str(change_route_time)+"] Best route to ", str(gs_name), path_nodes, path_length, " --> it takes ", str(end-start)+" ms")
-        print("["+str(satname)+"]["+str(change_route_time)+"] Best route to ", str(gs_name), len(path), " --> it takes ", str(end-start)+" ms")
-
-        # print end-start
+# def gsl_update_msg_handler_trial(satname, message_command, message_receiver, gs_name, gs_ip, last_hop_satellite_name, last_hop_satellite_ip, change_route_time, connectivity_matrix, num_of_satellites):
+#
+#     if satname == message_receiver or message_receiver == "all":
+#         gs = int(gs_name)+num_of_satellites
+#         # print ("I am heree")
+#         start = round(time.time()*1000)
+#         G = nx.Graph()
+#         for n in range(num_of_satellites+100):  #the last node in the graph is the ground station that propagate the update
+#             G.add_node(n)
+#
+#         # print last_hop_satellite_name
+#         G.add_edge(gs, int(last_hop_satellite_name), weight=1)
+#         for i in range(len(connectivity_matrix)):
+#             for j in range(len(connectivity_matrix[i])):
+#                 if connectivity_matrix[i][j] == 1:
+#                     G.add_edge(i, j, weight=1)
+#
+#         print len(G.edges())
+#         # path_length, path_nodes, negative_cycle = bf.bellman_ford(G, source=int(satname), target=gs, weight="weight")
+#         path = nx.dijkstra_path(G, int(satname), int(gs))
+#         end = round(time.time()*1000)
+#         # print("["+str(satname)+"]["+str(change_route_time)+"] Best route to ", str(gs_name), path_nodes, path_length, " --> it takes ", str(end-start)+" ms")
+#         print("["+str(satname)+"]["+str(change_route_time)+"] Best route to ", str(gs_name), len(path), " --> it takes ", str(end-start)+" ms")
+#
+#         # print end-start
 
 def main():
-    UDPSocket = connection_establishment("", 20001)
+    UDPSocket = connection_establishment(str(sys.argv[1]), 20001)
     # file1 = open('connectivity_matrix.txt', 'r')
     # Lines = file1.readlines()
     #
@@ -161,7 +158,7 @@ def main():
         if recv_msg.message_type == 2: # ROUTE_UPDATE
             t = threading.Thread(target=route_update_msg_handler, args=(recv_msg.message_command, recv_msg.message_receiver, recv_msg.route_update_type, recv_msg.route_destination, recv_msg.route_next_hop, recv_msg.route_out_interface))
             t.start()
-            
+
         if recv_msg.message_type == 3: # GSL_UPDATE
             t = threading.Thread(target=gsl_update_msg_handler_trial, args=(sys.argv[1], recv_msg.message_command, recv_msg.message_receiver, recv_msg.gs_name, recv_msg.gs_ip, recv_msg.last_hop_satellite_name, recv_msg.last_hop_satellite_ip, recv_msg.change_route_time, connectivity_matrix, 1451))
             t.start()
