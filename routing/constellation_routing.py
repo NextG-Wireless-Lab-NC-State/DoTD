@@ -45,9 +45,9 @@ def initial_routing(satellites, ground_stations, connectivity_matrix):
 
     static_routing_list_args = []
     print len(mega_constellation_graph.edges())
-    for p in range(len(satellites)+len(ground_stations)):
-        for q in range(len(satellites)+len(ground_stations)):
-            static_routing_list_args.append((mega_constellation_graph, 0, q))#this 0 should be p
+    # for p in range(len(satellites)+len(ground_stations)):
+    for q in range(len(satellites)+len(ground_stations)):
+        static_routing_list_args.append((mega_constellation_graph, 0, q))#this 0 should be p
 
     pool = Pool(70)
     static_routes = pool.map(static_routing_worker, static_routing_list_args)
@@ -169,13 +169,21 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
                     last_h_node_intf = intfs[0]
 
         print dest_node_intf
-        dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28"
-        next_hop_ip = get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)
-        out_interface = src_node_intf
+        if dest_node_intf != "":
+            dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28"
+            next_hop_ip = get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)
+            out_interface = src_node_intf
+        else:
+            print "Error: No link between ", str(last_hop_node), " and ", str(dest_node)
+            exit()
 
-        src_nw_ip = get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs))+"/28"
-        last_hop_ip = get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)
-        out_interface_2 = dest_node_intf
+        if src_node_intf != "":
+            src_nw_ip = get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs))+"/28"
+            last_hop_ip = get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)
+            out_interface_2 = dest_node_intf
+        else:
+            print "Error: No link between ", str(src_node), " and ", str(next_hop_node)
+            exit()
 
         parameters.append(src_node)
         parameters.append(dest_nw_ip)
