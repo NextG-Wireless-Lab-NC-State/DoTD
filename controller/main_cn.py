@@ -165,6 +165,7 @@ def main():
             UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
             UDPClientSocket.close()
 
+            time.sleep(0.02)
             msg                         = MCMsgs.mega_constellation_msg()
             msg.message_type            =  2
             msg.message_command         = "ip route"
@@ -184,6 +185,7 @@ def main():
             UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
             UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
             UDPClientSocket.close()
+            time.sleep(0.02)
         # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))
     # print "Mininet main listener is created ... "
