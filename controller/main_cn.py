@@ -184,8 +184,8 @@ def main():
             serverAddressPort_2=(str(sendto_ip_2.strip()), 20001)
             UDPClientSocket_2 = socket(family=AF_INET, type=SOCK_DGRAM)
             UDPClientSocket_2.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            print serverAddressPort_2
-            print msg2.SerializeToString()
+            # print serverAddressPort_2
+            # print msg2.SerializeToString()
             UDPClientSocket_2.sendto(msg2.SerializeToString(), serverAddressPort_2)
             UDPClientSocket_2.close()
             time.sleep(0.002)

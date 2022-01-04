@@ -40,14 +40,14 @@ def initial_routing(satellites, ground_stations, connectivity_matrix):
     for i in range(len(connectivity_matrix)):
         for j in range(len(connectivity_matrix[i])):
             if connectivity_matrix[i][j] == 1:
-                print i, j
+                #print i, j
                 mega_constellation_graph.add_edge(i, j, weight=1)
 
     static_routing_list_args = []
     print len(mega_constellation_graph.edges())
     for p in range(len(satellites)+len(ground_stations)):
         for q in range(len(satellites)+len(ground_stations)):
-            static_routing_list_args.append((mega_constellation_graph, p, q))
+            static_routing_list_args.append((mega_constellation_graph, 0, q))#this 0 should be p
 
     pool = Pool(70)
     static_routes = pool.map(static_routing_worker, static_routing_list_args)
