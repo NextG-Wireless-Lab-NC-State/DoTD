@@ -99,7 +99,7 @@ def main():
     list_of_Intf_IPs = get_intf("constellation_ip_assignment.txt")
     list_of_mgnt_IPs = get_all_mgnt_interfaces("m_intf_log.txt")
 
-    print len(links), len(list_of_Intf_IPs)
+    print "num_links=", len(links), "num__mgn_interfaces=",len(list_of_Intf_IPs)
 
     satellites_sorted_in_orbits = []        #carry satellites names according to STARLINK naming conversion
     for i in range(number_of_orbits):
@@ -119,7 +119,7 @@ def main():
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
 
-    print num_of_satellites, num_of_ground_stations
+    print "num_satellites=", num_of_satellites, "num_gs="num_of_ground_stations
 
     conn_mat_size = num_of_satellites + num_of_ground_stations
 
@@ -131,11 +131,11 @@ def main():
 
 
     start = round(time.time()*1000)
-    sats = satellites_by_index[10]
-    initial_routes = initial_routing(sats, ground_stations, connectivity_matrix)
+    # sats = satellites_by_index[10]
+    initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
 
     end = round(time.time()*1000)
-    print "Initial routing took ", end-start, "ms"
+    print "Initial routing took ", end-start, "ms ", "for ", len(initial_routes), " routes"
 
     # initial_routes = []
     # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
@@ -165,7 +165,7 @@ def main():
             UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
             UDPClientSocket.close()
 
-            time.sleep(0.02)
+            time.sleep(0.002)
             msg                         = MCMsgs.mega_constellation_msg()
             msg.message_type            =  2
             msg.message_command         = "ip route"
@@ -185,7 +185,7 @@ def main():
             UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
             UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
             UDPClientSocket.close()
-            time.sleep(0.02)
+            time.sleep(0.002)
         # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))
     # print "Mininet main listener is created ... "
