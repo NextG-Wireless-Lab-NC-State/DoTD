@@ -119,7 +119,7 @@ def main():
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
 
-    print "num_satellites=", num_of_satellites, "num_gs="num_of_ground_stations
+    print "num_satellites=", num_of_satellites, "num_gs=", num_of_ground_stations
 
     conn_mat_size = num_of_satellites + num_of_ground_stations
 
@@ -166,25 +166,26 @@ def main():
             UDPClientSocket.close()
 
             time.sleep(0.002)
-            msg                         = MCMsgs.mega_constellation_msg()
-            msg.message_type            =  2
-            msg.message_command         = "ip route"
-            msg.message_receiver        = parameters[4]
-            msg.route_update_type       = 0
+            msg2                         = MCMsgs.mega_constellation_msg()
+            msg2.message_type            =  2
+            msg2.message_command         = "ip route"
+            msg2.message_receiver        = parameters[4]
+            msg2.route_update_type       = 0
 
-            msg.route_destination       = parameters[5]
-            msg.route_next_hop          = parameters[6]
-            msg.route_out_interface     = parameters[7]
+            msg2.route_destination       = parameters[5]
+            msg2.route_next_hop          = parameters[6]
+            msg2.route_out_interface     = parameters[7]
 
-            msg.change_route_time       = t.utc_strftime()
+            msg2.change_route_time       = t.utc_strftime()
 
-            print msg
-            sendto_ip = get_management_ip(list_of_mgnt_IPs, parameters[4])
-            serverAddressPort=(str(sendto_ip.strip()), 20001)
-            UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
-            UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
-            UDPClientSocket.close()
+            print msg2
+            sendto_ip_2 = get_management_ip(list_of_mgnt_IPs, parameters[4])
+            print str(sendto_ip_2.strip())
+            serverAddressPort_2=(str(sendto_ip_2.strip()), 20001)
+            UDPClientSocket_2 = socket(family=AF_INET, type=SOCK_DGRAM)
+            UDPClientSocket_2.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+            UDPClientSocket_2.sendto(msg2.SerializeToString(), serverAddressPort_2)
+            UDPClientSocket_2.close()
             time.sleep(0.002)
         # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))
