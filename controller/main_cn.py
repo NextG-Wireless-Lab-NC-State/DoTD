@@ -52,15 +52,21 @@ def get_time(filename):
     lines = file.readlines()
     used_time = lines[0]
 
-    year, month, day = used_time.split(" ")[0].split("-")
-    hour, min, sec = used_time.split(" ")[1].split(":")
-    min_num = 0
-    min_num += float(min) + (float(sec)/float(60.0))
-    ts = load.timescale()
-    t2 = ts.utc(int(year), int(month), int(day), int(hour), min_num)
+    year, month, day, hour, minute, newscs = used_time.split(",")
+    t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    print t.tt
 
-    return t2
+    # year, month, day = used_time.split(" ")[0].split("-")
+    # hour, min, sec = used_time.split(" ")[1].split(":")
+    # min_num = 0
+    # min_num += float(min) + (float(sec)/float(60.0))
+    # ts = load.timescale()
+    # t2 = ts.utc(int(year), int(month), int(day), int(hour), min_num)
 
+    # return t2
+
+    return t
+    
 def get_links(filename):
     linksFile = open(filename, 'r')
     lines = linksFile.readlines()
@@ -93,10 +99,7 @@ def main():
 
     orbital_data = get_orbital_planes("starlink.txt",1)
 
-    tm = get_time("time_log.txt")
-    year, month, day, hour, minute, newscs = tm.split(",")
-    t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
-    print t.tt
+    t = get_time("time_log.txt")
 
     print t.utc_strftime()
     links = get_links("links_log.txt")
