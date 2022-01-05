@@ -53,6 +53,7 @@ def get_time(filename):
     used_time = lines[0]
 
     year, month, day, hour, minute, newscs = used_time.split(",")
+    ts = load.timescale()
     t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
     print t.tt
 
@@ -66,7 +67,7 @@ def get_time(filename):
     # return t2
 
     return t
-    
+
 def get_links(filename):
     linksFile = open(filename, 'r')
     lines = linksFile.readlines()
@@ -132,22 +133,22 @@ def main():
 
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
 
-    for link in links:
-        linkIntf1, linkIntf2 = link.split(":")
-        if "sat" in linkIntf1 and "sat" in linkIntf2:
-            sat1name = linkIntf1.split("-")[0]
-            sat2name = linkIntf2.split("-")[0]
-            connectivity_matrix[int(sat1name[3:])][int(sat2name[3:])] = 1
-            connectivity_matrix[int(sat2name[3:])][int(sat1name[3:])] = 1
+    # for link in links:
+    #     linkIntf1, linkIntf2 = link.split(":")
+    #     if "sat" in linkIntf1 and "sat" in linkIntf2:
+    #         sat1name = linkIntf1.split("-")[0]
+    #         sat2name = linkIntf2.split("-")[0]
+    #         connectivity_matrix[int(sat1name[3:])][int(sat2name[3:])] = 1
+    #         connectivity_matrix[int(sat2name[3:])][int(sat1name[3:])] = 1
+    #
+    #     if "sat" in linkIntf1 and "gs" in linkIntf2:
+    #         satname = linkIntf1.split("-")[0]
+    #         gsname = linkIntf2.split("-")[0]
+    #         connectivity_matrix[int(satname[3:])][int(gsname[2:])+num_of_satellites] = 1
+    #         connectivity_matrix[int(gsname[2:])+num_of_satellites][int(satname[3:])] = 1
 
-        if "sat" in linkIntf1 and "gs" in linkIntf2:
-            satname = linkIntf1.split("-")[0]
-            gsname = linkIntf2.split("-")[0]
-            connectivity_matrix[int(satname[3:])][int(gsname[2:])+num_of_satellites] = 1
-            connectivity_matrix[int(gsname[2:])+num_of_satellites][int(satname[3:])] = 1
-
-    # connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
-    # connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
+    connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
+    connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
 
@@ -163,6 +164,7 @@ def main():
     # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
     # exit()
     cntr = 0
+    print "how many route updates? ", len(initial_routes)
     for route in initial_routes:
         if len(route[0]) > 2:
             cntr += 1
@@ -182,7 +184,7 @@ def main():
 
             msg.change_route_time       = t.utc_strftime()
 
-            print msg
+            # print msg
             sendto_ip = get_management_ip(list_of_mgnt_IPs, parameters[0])
             serverAddressPort=(str(sendto_ip.strip()), 20001)
             UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
@@ -203,14 +205,12 @@ def main():
 
             msg2.change_route_time       = t.utc_strftime()
 
-            print msg2
+            # print msg2
             sendto_ip_2 = get_management_ip(list_of_mgnt_IPs, parameters[4])
 
             serverAddressPort_2=(str(sendto_ip_2.strip()), 20001)
             UDPClientSocket_2 = socket(family=AF_INET, type=SOCK_DGRAM)
             UDPClientSocket_2.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            # print serverAddressPort_2
-            # print msg2.SerializeToString()
             UDPClientSocket_2.sendto(msg2.SerializeToString(), serverAddressPort_2)
             UDPClientSocket_2.close()
             time.sleep(0.002)

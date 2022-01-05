@@ -84,8 +84,8 @@ class sat_network(Topo):
         connectivity_matrix_temp = connectivity_matrix[:]
         for i in range(0,len(connectivity_matrix_temp)):
             for j in range(0, len(connectivity_matrix_temp[i])):
-                if connectivity_matrix_temp[i][j] == 1:
-                    print i,j
+                # if connectivity_matrix_temp[i][j] == 1:
+                #     print i,j
                 # Add the ISL links
                 if i < len(satellites) and j < len(satellites) and connectivity_matrix_temp[i][j] == 1:
                     self.addLink(sat_list[i], sat_list[j], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'sat'+str(j)+'-eth'+str(sat_intf_count[j]), cls=TCLink, delay=str(link_latency[i][j])+'ms')

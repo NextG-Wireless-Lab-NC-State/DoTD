@@ -244,7 +244,7 @@ def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_sa
         if chosen_sid != -1:
             connectivity_matrix[chosen_sid][num_of_satellites+gid] = 1
             connectivity_matrix[num_of_satellites+gid][chosen_sid] = 1
-            print "best distance ",gid, chosen_sid, best_distance_m
+            # print "best distance ",gid, chosen_sid, best_distance_m
             gsl_snr[gid] = calc_gsl_snr_given_distance(best_distance_m)
             gsl_latency[gid] = best_distance_m/299792458            #speed of light
 
