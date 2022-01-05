@@ -140,8 +140,11 @@ def main():
     # initial_routes = []
     # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
     # exit()
+    cntr = 0
     for route in initial_routes:
         if len(route[0]) > 2:
+            cntr += 1
+            print "counter =", cntr
             parameters = get_static_route_parameter(route, links, list_of_Intf_IPs, satellites_by_index)
         #
 
