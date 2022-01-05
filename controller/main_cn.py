@@ -189,8 +189,15 @@ def main():
             serverAddressPort=(str(sendto_ip.strip()), 20001)
             UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
             UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
-            UDPClientSocket.close()
+            while 1:
+                try:
+                    UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
+                except Exception as e:
+                    print "wait 1 second and try again ..."
+                    time.sleep(1)
+                else:
+                    UDPClientSocket.close()
+                    break;
 
             time.sleep(0.002)
             msg2                         = MCMsgs.mega_constellation_msg()
@@ -211,8 +218,15 @@ def main():
             serverAddressPort_2=(str(sendto_ip_2.strip()), 20001)
             UDPClientSocket_2 = socket(family=AF_INET, type=SOCK_DGRAM)
             UDPClientSocket_2.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            UDPClientSocket_2.sendto(msg2.SerializeToString(), serverAddressPort_2)
-            UDPClientSocket_2.close()
+            while 1:
+                try:
+                    UDPClientSocket_2.sendto(msg2.SerializeToString(), serverAddressPort_2)
+                except Exception as e:
+                    print "wait 1 second and try again ..."
+                    time.sleep(1)
+                else:
+                    UDPClientSocket_2.close()
+                    break;
             time.sleep(0.002)
         # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))

@@ -135,7 +135,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
     parameters = []
     current_route = route[0];
     if len(current_route) > 2:
-        print current_route
+        # print current_route
         src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
 
         src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node%len(satellites))
@@ -143,7 +143,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
         dest_node = "sat"+str(dest_node) if dest_node < len(satellites) else "gs"+str(dest_node%len(satellites))
         last_hop_node = "sat"+str(last_hop_node) if last_hop_node < len(satellites) else "gs"+str(last_hop_node%len(satellites))
 
-        print src_node, next_hop_node, dest_node, last_hop_node
+        # print src_node, next_hop_node, dest_node, last_hop_node
         src_node_intf = ""
         dest_node_intf= ""
         next_h_node_intf = ""
@@ -168,7 +168,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
                     dest_node_intf = intfs[1]
                     last_h_node_intf = intfs[0]
 
-        print dest_node_intf
+        # print dest_node_intf
         if dest_node_intf != "":
             dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28"
             next_hop_ip = get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)
