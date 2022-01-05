@@ -73,6 +73,18 @@ def main():
     # print orbital_data
     ts = load.timescale()
     t = ts.now()
+    print "\n"
+    print t.tt
+    print t.utc_strftime()
+    dt, leap_second = t.utc_datetime_and_leap_second()
+    print dt
+    newscs = ((str(dt).split(" ")[1]).split(":")[2]).split("+")[0]
+    date, time, zone = t.utc_strftime().split(" ")
+    year, month, day = date.split("-")
+    hour, minute, second = time.split(":")
+    loggedTime = str(year)+","+str(month)+","+str(day)+","+str(hour)+","+str(minute)+","+str(newscs)
+    t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    print t2.tt
 
     satellites_sorted_in_orbits = []        #carry satellites names according to STARLINK naming conversion
     for i in range(number_of_orbits):
@@ -123,7 +135,7 @@ def main():
 
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=link_chara["throughput_matrix"], link_latency=link_chara["latency_matrix"])
-    log_info_for_controller(t.utc_strftime(), topg["isl_gls_links"], topg["management_interface"]);
+    log_info_for_controller(loggedTime, topg["isl_gls_links"], topg["management_interface"]);
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     net.start()
     list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(net, available_ips)

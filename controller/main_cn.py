@@ -93,7 +93,11 @@ def main():
 
     orbital_data = get_orbital_planes("starlink.txt",1)
 
-    t = get_time("time_log.txt")
+    tm = get_time("time_log.txt")
+    year, month, day, hour, minute, newscs = tm.split(",")
+    t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    print t.tt
+
     print t.utc_strftime()
     links = get_links("links_log.txt")
     list_of_Intf_IPs = get_intf("constellation_ip_assignment.txt")
@@ -124,8 +128,23 @@ def main():
     conn_mat_size = num_of_satellites + num_of_ground_stations
 
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
-    connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
-    connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
+
+    for link in links:
+        linkIntf1, linkIntf2 = link.split(":")
+        if "sat" in linkIntf1 and "sat" in linkIntf2:
+            sat1name = linkIntf1.split("-")[0]
+            sat2name = linkIntf2.split("-")[0]
+            connectivity_matrix[int(sat1name[3:])][int(sat2name[3:])] = 1
+            connectivity_matrix[int(sat2name[3:])][int(sat1name[3:])] = 1
+
+        if "sat" in linkIntf1 and "gs" in linkIntf2:
+            satname = linkIntf1.split("-")[0]
+            gsname = linkIntf2.split("-")[0]
+            connectivity_matrix[int(satname[3:])][int(gsname[2:])+num_of_satellites] = 1
+            connectivity_matrix[int(gsname[2:])+num_of_satellites][int(satname[3:])] = 1
+
+    # connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
+    # connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
 
