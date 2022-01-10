@@ -59,6 +59,18 @@ def get_time(filename):
 
     return t
 
+def get_time_now_utc():
+    ts = load.timescale()
+    t = ts.now()
+
+    dt, leap_second = t.utc_datetime_and_leap_second()
+    newscs = ((str(dt).split(" ")[1]).split(":")[2]).split("+")[0]
+    date, timeN, zone = t.utc_strftime().split(" ")
+    year, month, day = date.split("-")
+    hour, minute, second = timeN.split(":")
+
+    return (year, month, day, hour, minute, newscs)
+
 def get_links(filename):
     linksFile = open(filename, 'r')
     lines = linksFile.readlines()
@@ -130,10 +142,19 @@ def main():
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
 
     last_CMatrix = connectivity_matrix[:]
+    timenow = get_time_now_utc()
+    print timenow
+    year, month, day, hour, minute, seconds = int(timenow[0]), int(timenow[1]), int(timenow[2]), int(timenow[3]), int(timenow[4]), float(timenow[5])
+    ts = load.timescale()
+    t = ts.utc(year, month, day, hour, minute, seconds)
+    print t.utc_strftime()
+
     while(True):
-        ts = load.timescale()
-        t = ts.now()
+
+        seconds += 0.01
+        t = ts.utc(year, month, day, hour, minute, seconds)
         print t.utc_strftime()
+
         new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
 
         start = round(time.time()*1000)
@@ -150,12 +171,21 @@ def main():
 
         print len(route_changes)
 
+        gsl_ch = 0
+        isl_ch = 0
+        for change in route_changes:
+            print change
+            #changes in the GSL links
+            if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
+                gsl_ch += 1
+            # changes in the ISL links
+            elif change[0] < num_of_satellites and change[1] < num_of_satellites:
+                isl_ch += 1
+
+        print gsl_ch, isl_ch
+
         last_CMatrix = new_CMatrix[:]
-            # changes in the GSL links
-            # if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
-            #     print
-            # # changes in the ISL links
-            # elif change[0] < num_of_satellites and change[1] < num_of_satellites:
+
     # print "Mininet main listener is created ... "
     # while(True):
     #     bytesAddressPair = UDPSocket.recvfrom(1024)
