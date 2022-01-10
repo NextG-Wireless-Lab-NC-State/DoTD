@@ -141,8 +141,13 @@ def main():
     connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t, 1, GS_SAT_Table)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
-    print GS_SAT_Table
+    for index, vals in enumerate(GS_SAT_Table):
+        if len(vals) > 0:
+            print index, vals
+
     last_CMatrix = connectivity_matrix[:]
+    last_GS_SAT_Table = GS_SAT_Table[:]
+
     timenow = get_time_now_utc()
     print timenow
     year, month, day, hour, minute, seconds = int(timenow[0]), int(timenow[1]), int(timenow[2]), int(timenow[3]), int(timenow[4]), float(timenow[5])
@@ -150,11 +155,14 @@ def main():
     t = ts.utc(year, month, day, hour, minute, seconds)
     print t.utc_strftime()
 
+    step = 1 #in seconds
+
     while(True):
-        seconds += 1
+        seconds += step
         t = ts.utc(year, month, day, hour, minute, seconds)
         print t.utc_strftime()
 
+        new_GS_SAT_Table = [[] for i in range(num_of_satellites)]
         new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
 
         start = round(time.time()*1000)
@@ -163,9 +171,13 @@ def main():
         print "ISL ", end-start, "ms "
 
         start = round(time.time()*1000)
-        new_CMatrix = mininet_add_GSLs(new_CMatrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
+        new_CMatrix = mininet_add_GSLs(new_CMatrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t, 1, new_GS_SAT_Table)
         end = round(time.time()*1000)
         print "GSL ", end-start, "ms "
+
+        for index, vals in enumerate(new_GS_SAT_Table):
+            if len(vals) > 0:
+                print index, vals
 
         route_changes = check_changes_in_routes(last_CMatrix, new_CMatrix)
 

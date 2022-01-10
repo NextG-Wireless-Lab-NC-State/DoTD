@@ -46,7 +46,7 @@ def initial_routing(satellites, ground_stations, connectivity_matrix):
     static_routing_list_args = []
     print len(mega_constellation_graph.edges())
     for p in range(len(satellites)+len(ground_stations)):#len(satellites)+len(ground_stations)
-        for q in range(len(satellites)+len(ground_stations)):
+        for q in range(p, len(satellites)+len(ground_stations)):
             static_routing_list_args.append((mega_constellation_graph, p, q))
 
     pool = Pool(20)

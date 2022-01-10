@@ -57,9 +57,9 @@ def main():
         parameters = get_static_route_parameter(route_new, links, list_of_Intf_IPs, satellites_by_index)
         # print parameters
         command = ["ip", "route", "add", parameters[1], "via", parameters[2], "dev", parameters[3]]
-
-        # with open('logs/log-'+str(sys.argv[1])+'.txt', 'a') as f:
         subprocess.call(command)
+
+
 
     end = round(time.time()*1000)
     timelapsed = end-start

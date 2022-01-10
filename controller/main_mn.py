@@ -63,7 +63,13 @@ def log_info_for_controller(current_time, links, m_intfs, satellites, routes):
             current_route = route[0]
             src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
             src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node%len(satellites))
+            dest_node = "sat"+str(dest_node) if dest_node < len(satellites) else "gs"+str(dest_node%len(satellites))
             routes_log = open("routes/"+str(src_node)+"_routes.txt", "a")
+            routes_log.write(str(current_route)[1:-1] + "\n")
+            routes_log.close()
+
+            routes_log = open("routes/"+str(dest_node)+"_routes.txt", "a")
+            current_route.reverse()
             routes_log.write(str(current_route)[1:-1] + "\n")
             routes_log.close()
 
@@ -71,7 +77,6 @@ def log_info_for_controller(current_time, links, m_intfs, satellites, routes):
 
 def main():
     N = 3
-
 
     for f in os.listdir('routes/'):
         os.remove(os.path.join('routes/', f))
