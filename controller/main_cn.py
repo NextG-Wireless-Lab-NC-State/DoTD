@@ -131,6 +131,8 @@ def main():
 
     last_CMatrix = connectivity_matrix[:]
     while(True):
+        ts = load.timescale()
+        t = ts.now()
         new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
         new_CMatrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
         new_CMatrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
@@ -140,10 +142,10 @@ def main():
         for change in route_changes:
             print change
             # changes in the GSL links
-            if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
-                print 
-            # changes in the ISL links
-            elif change[0] < num_of_satellites and change[1] < num_of_satellites:
+            # if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
+            #     print
+            # # changes in the ISL links
+            # elif change[0] < num_of_satellites and change[1] < num_of_satellites:
     # print "Mininet main listener is created ... "
     # while(True):
     #     bytesAddressPair = UDPSocket.recvfrom(1024)
