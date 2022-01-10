@@ -196,3 +196,12 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
         parameters.append(out_interface_2)
 
     return parameters
+
+def check_changes_in_routes(last, new):
+    changes = []
+    for i in range(len(new)):
+        for j in range(len(new[i])):
+            if new[i][j] != last[i][j]:
+                changes.append((i, j, last[i][j], new[i][j]))
+
+    return changes

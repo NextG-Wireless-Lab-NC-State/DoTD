@@ -57,15 +57,6 @@ def get_time(filename):
     t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
     print t.tt
 
-    # year, month, day = used_time.split(" ")[0].split("-")
-    # hour, min, sec = used_time.split(" ")[1].split(":")
-    # min_num = 0
-    # min_num += float(min) + (float(sec)/float(60.0))
-    # ts = load.timescale()
-    # t2 = ts.utc(int(year), int(month), int(day), int(hour), min_num)
-
-    # return t2
-
     return t
 
 def get_links(filename):
@@ -133,103 +124,26 @@ def main():
 
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
 
-    # for link in links:
-    #     linkIntf1, linkIntf2 = link.split(":")
-    #     if "sat" in linkIntf1 and "sat" in linkIntf2:
-    #         sat1name = linkIntf1.split("-")[0]
-    #         sat2name = linkIntf2.split("-")[0]
-    #         connectivity_matrix[int(sat1name[3:])][int(sat2name[3:])] = 1
-    #         connectivity_matrix[int(sat2name[3:])][int(sat1name[3:])] = 1
-    #
-    #     if "sat" in linkIntf1 and "gs" in linkIntf2:
-    #         satname = linkIntf1.split("-")[0]
-    #         gsname = linkIntf2.split("-")[0]
-    #         connectivity_matrix[int(satname[3:])][int(gsname[2:])+num_of_satellites] = 1
-    #         connectivity_matrix[int(gsname[2:])+num_of_satellites][int(satname[3:])] = 1
-
     connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
     connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
 
+    last_CMatrix = connectivity_matrix[:]
+    while(True):
+        new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
+        new_CMatrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
+        new_CMatrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
 
-    start = round(time.time()*1000)
-    # sats = satellites_by_index[10]
-    initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
+        route_changes = check_changes_in_routes(last_CMatrix, new_CMatrix)
 
-    end = round(time.time()*1000)
-    print "Initial routing took ", end-start, "ms ", "for ", len(initial_routes), " routes"
-
-    # initial_routes = []
-    # static_routing_update_commands(initial_routes, links, list_of_Intf_IPs, satellites_by_index)
-    # exit()
-    cntr = 0
-    print "how many route updates? ", len(initial_routes)
-    for route in initial_routes:
-        if len(route[0]) > 2:
-            cntr += 1
-            print "counter =", cntr
-            parameters = get_static_route_parameter(route, links, list_of_Intf_IPs, satellites_by_index)
-        #
-
-            msg                         = MCMsgs.mega_constellation_msg()
-            msg.message_type            =  2
-            msg.message_command         = "ip route"
-            msg.message_receiver        = parameters[0]
-            msg.route_update_type       = 0
-
-            msg.route_destination       = parameters[1]
-            msg.route_next_hop          = parameters[2]
-            msg.route_out_interface     = parameters[3]
-
-            msg.change_route_time       = t.utc_strftime()
-
-            # print msg
-            sendto_ip = get_management_ip(list_of_mgnt_IPs, parameters[0])
-            serverAddressPort=(str(sendto_ip.strip()), 20001)
-            UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
-            UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            while 1:
-                try:
-                    UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
-                except Exception as e:
-                    print "wait 1 second and try again ..."
-                    time.sleep(1)
-                else:
-                    UDPClientSocket.close()
-                    break;
-
-            time.sleep(0.002)
-            msg2                         = MCMsgs.mega_constellation_msg()
-            msg2.message_type            =  2
-            msg2.message_command         = "ip route"
-            msg2.message_receiver        = parameters[4]
-            msg2.route_update_type       = 0
-
-            msg2.route_destination       = parameters[5]
-            msg2.route_next_hop          = parameters[6]
-            msg2.route_out_interface     = parameters[7]
-
-            msg2.change_route_time       = t.utc_strftime()
-
-            # print msg2
-            sendto_ip_2 = get_management_ip(list_of_mgnt_IPs, parameters[4])
-
-            serverAddressPort_2=(str(sendto_ip_2.strip()), 20001)
-            UDPClientSocket_2 = socket(family=AF_INET, type=SOCK_DGRAM)
-            UDPClientSocket_2.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-            while 1:
-                try:
-                    UDPClientSocket_2.sendto(msg2.SerializeToString(), serverAddressPort_2)
-                except Exception as e:
-                    print "wait 1 second and try again ..."
-                    time.sleep(1)
-                else:
-                    UDPClientSocket_2.close()
-                    break;
-            time.sleep(0.002)
-        # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
-    # UDPSocket.bind(("", 20001))
+        for change in route_changes:
+            print change
+            # changes in the GSL links
+            if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
+                print 
+            # changes in the ISL links
+            elif change[0] < num_of_satellites and change[1] < num_of_satellites:
     # print "Mininet main listener is created ... "
     # while(True):
     #     bytesAddressPair = UDPSocket.recvfrom(1024)
