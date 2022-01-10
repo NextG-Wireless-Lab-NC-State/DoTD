@@ -10,6 +10,7 @@ import time
 import subprocess
 import threading
 import os
+import math
 import sys
 sys.path.append('../comm_protocol')
 import c_m_update_topology_pb2 as updateTopologyMsg
@@ -265,3 +266,22 @@ class sat_network(Topo):
             node_m_ip = self.get_management_ip(intfs, "sat"+str(i)).strip()
             print("added .....,"+"sat"+str(i)+" -- "+node_m_ip)
             sat_node.cmd("python ../comm_protocol/satellite_worker.py "+node_m_ip+ " &")
+
+    def startRoutingConfig(self, net, satellites, ground_stations, intfs):
+        patch_size = 10.0
+        intervals = int(math.ceil(len(satellites)/float(patch_size)))
+        print intervals
+        remaining_sats = len(satellites)
+        for v in range(intervals):
+            start = int(v*patch_size)
+            end = int((v+1)*patch_size) if remaining_sats>=patch_size else len(satellites)
+            remaining_sats -= patch_size
+            print "Run satellites from sat", start, " to sat", end, " The remaining sats = ", remaining_sats
+            for i in range(start, end, 1):
+                sat_node = net.getNodeByName("sat"+str(i))
+                # print("Start routing config for .....,"+"sat"+str(i))
+                sat_node.cmd("python ../comm_protocol/config_initial_routes.py "+"sat"+str(i)+" &")
+
+            time.sleep(20)
+            for i in range(start, end, 1):
+                sat_node.cmd("pkill -f 'python ../comm_protocol/config_initial_routes.py sat"+str(i)+"'")

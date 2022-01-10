@@ -39,23 +39,44 @@ from routing.routing_utils import *
 from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
-def log_info_for_controller(current_time, links, m_intfs):
+def log_info_for_controller(current_time, links, m_intfs, satellites, routes):
     time_log = open("time_log.txt", "w")
     time_log.write(current_time + "\n")
 
     links_log = open("links_log.txt", "w")
     for link in links:
         links_log.write(link + "\n")
+    links_log.close()
 
     m_intf_log = open("m_intf_log.txt", "w")
     for intf in m_intfs:
         m_intf_log.write(intf["node"] + "\t" + intf["mgnt_ip"] + "\n")
     m_intf_log.close()
 
+    satellites_log = open("satellites_by_index_log.txt", "w")
+    for sat in satellites:
+        satellites_log.write(str(sat) + "\n")
+    satellites_log.close()
+
+    for route in routes:
+        if len(route[0]) > 2:
+            current_route = route[0]
+            src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
+            src_node = "sat"+str(src_node) if src_node < len(satellites) else "gs"+str(src_node%len(satellites))
+            routes_log = open("routes/"+str(src_node)+"_routes.txt", "a")
+            routes_log.write(str(current_route)[1:-1] + "\n")
+            routes_log.close()
+
     print("..... Logged!\n")
 
 def main():
     N = 3
+
+
+    for f in os.listdir('routes/'):
+        os.remove(os.path.join('routes/', f))
+
+    print "All old routes have been removed ... "
 
     number_of_orbits = 72
     ground_stations = read_gs("../mobility/ground_stations.txt")
@@ -79,9 +100,9 @@ def main():
     dt, leap_second = t.utc_datetime_and_leap_second()
     print dt
     newscs = ((str(dt).split(" ")[1]).split(":")[2]).split("+")[0]
-    date, time, zone = t.utc_strftime().split(" ")
+    date, timeN, zone = t.utc_strftime().split(" ")
     year, month, day = date.split("-")
-    hour, minute, second = time.split(":")
+    hour, minute, second = timeN.split(":")
     loggedTime = str(year)+","+str(month)+","+str(day)+","+str(hour)+","+str(minute)+","+str(newscs)
     t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
     print t2.tt
@@ -127,6 +148,12 @@ def main():
 
 
     available_ips = generate_ips_for_constellation()
+
+    start = round(time.time()*1000)
+    initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
+    end = round(time.time()*1000)
+    print "Initial routing took ", end-start, "ms ", "for ", len(initial_routes), " routes"
+
     # start = round(time.time()*1000)
     # initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
     #
@@ -135,7 +162,7 @@ def main():
 
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=link_chara["throughput_matrix"], link_latency=link_chara["latency_matrix"])
-    log_info_for_controller(loggedTime, topg["isl_gls_links"], topg["management_interface"]);
+    log_info_for_controller(loggedTime, topg["isl_gls_links"], topg["management_interface"], satellites_by_index, initial_routes);
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     net.start()
     list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(net, available_ips)
@@ -154,7 +181,8 @@ def main():
     # for route in initial_routes:
     #     print route
     # topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
-    topology.startworker(net, satellites_by_index, ground_stations, topg["management_interface"])
+    # topology.startworker(net, satellites_by_index, ground_stations, topg["management_interface"])
+    topology.startRoutingConfig(net, satellites_by_index, ground_stations, topg["management_interface"])
     CLI( net)
     # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))
