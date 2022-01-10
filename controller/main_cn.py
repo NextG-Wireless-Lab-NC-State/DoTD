@@ -129,6 +129,7 @@ def main():
 
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
+    GS_SAT_Table = [[] for i in range(num_of_satellites)]
 
     print "num_satellites=", num_of_satellites, "num_gs=", num_of_ground_stations
 
@@ -137,10 +138,10 @@ def main():
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
 
     connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
-    connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
+    connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t, 1, GS_SAT_Table)
 
     link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
-
+    print GS_SAT_Table
     last_CMatrix = connectivity_matrix[:]
     timenow = get_time_now_utc()
     print timenow
@@ -150,8 +151,7 @@ def main():
     print t.utc_strftime()
 
     while(True):
-
-        seconds += 0.01
+        seconds += 1
         t = ts.utc(year, month, day, hour, minute, seconds)
         print t.utc_strftime()
 

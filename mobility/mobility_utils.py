@@ -203,7 +203,7 @@ def mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellite
 
     return connectivity_matrix
 
-def mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, number_of_threads, association_criteria, t):
+def mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, number_of_threads, association_criteria, t, UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table):
     # find all satellites in range for each ground station.
     list_args = []
     for ground_station in ground_stations:
@@ -219,11 +219,11 @@ def mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_inde
 
     # Find the best satellite
     if association_criteria == "BASED_ON_DISTANCE_ONLY_MININET":
-        return M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, ground_station_satellites_in_range_temporary, ground_stations, len(satellites_by_index))
+        return M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, ground_station_satellites_in_range_temporary, ground_stations, len(satellites_by_index), UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table)
 
     return -1
 
-def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_satellites_in_range, ground_stations, num_of_satellites):
+def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_satellites_in_range, ground_stations, num_of_satellites, UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table):
     gsl_snr = [0 for i in range(len(ground_stations))]
     gsl_latency = [0 for i in range(len(ground_stations))]
     ground_station_satellites_in_range = []
@@ -244,6 +244,8 @@ def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_sa
         if chosen_sid != -1:
             connectivity_matrix[chosen_sid][num_of_satellites+gid] = 1
             connectivity_matrix[num_of_satellites+gid][chosen_sid] = 1
+            if UPDATE_GS_SAT_TABLE_FLAG:
+                GS_SAT_Table[chosen_sid].append(gid)
             # print "best distance ",gid, chosen_sid, best_distance_m
             gsl_snr[gid] = calc_gsl_snr_given_distance(best_distance_m)
             gsl_latency[gid] = best_distance_m/299792458            #speed of light
