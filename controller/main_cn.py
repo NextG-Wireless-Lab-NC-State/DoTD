@@ -133,14 +133,24 @@ def main():
     while(True):
         ts = load.timescale()
         t = ts.now()
+        print t.utc_strftime()
         new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
-        new_CMatrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
-        new_CMatrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
+
+        start = round(time.time()*1000)
+        new_CMatrix = mininet_add_ISLs(new_CMatrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
+        end = round(time.time()*1000)
+        print "ISL ", end-start, "ms "
+
+        start = round(time.time()*1000)
+        new_CMatrix = mininet_add_GSLs(new_CMatrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t)
+        end = round(time.time()*1000)
+        print "GSL ", end-start, "ms "
 
         route_changes = check_changes_in_routes(last_CMatrix, new_CMatrix)
 
-        for change in route_changes:
-            print change
+        print len(route_changes)
+
+        last_CMatrix = new_CMatrix[:]
             # changes in the GSL links
             # if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
             #     print

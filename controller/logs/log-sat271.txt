@@ -1,1 +1,0 @@
-This process from sat271. It takes 19347.0ms to complete 

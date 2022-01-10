@@ -1,1 +1,0 @@
-This process from sat32. It takes 19394.0ms to complete 

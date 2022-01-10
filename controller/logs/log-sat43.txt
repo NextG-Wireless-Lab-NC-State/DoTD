@@ -1,1 +1,0 @@
-This process from sat43. It takes 17512.0ms to complete 

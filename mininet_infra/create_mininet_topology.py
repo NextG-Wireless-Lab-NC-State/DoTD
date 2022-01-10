@@ -282,6 +282,6 @@ class sat_network(Topo):
                 # print("Start routing config for .....,"+"sat"+str(i))
                 sat_node.cmd("python ../comm_protocol/config_initial_routes.py "+"sat"+str(i)+" &")
 
-            time.sleep(20)
+            time.sleep(40)
             for i in range(start, end, 1):
                 sat_node.cmd("pkill -f 'python ../comm_protocol/config_initial_routes.py sat"+str(i)+"'")
