@@ -1,1 +1,2 @@
-This process from sat10. It takes 19295.0ms to complete 
+This process from sat10. It takes 18299.0ms to complete 
+This process from sat10. It takes 18178.0ms to complete 

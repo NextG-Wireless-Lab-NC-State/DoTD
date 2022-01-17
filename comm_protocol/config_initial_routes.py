@@ -9,6 +9,11 @@ import sys
 sys.path.append("../")
 from routing.constellation_routing import *
 
+def get_gs_ip(list_of_Intf_IPs, gs):
+    for pair in list_of_Intf_IPs:
+        if gs in pair["Interface"]:
+            return pair["IP"]
+
 def get_intf(filename):
     Intf_file = open(filename, 'r')
     lines = Intf_file.readlines()
@@ -45,6 +50,8 @@ def main():
     list_of_Intf_IPs = get_intf("../controller/constellation_ip_assignment.txt")
     satellites_by_index = get_sats_by_index("../controller/satellites_by_index_log.txt")
 
+    GS_SAT_Table = get_gs_sat_table()
+
     route_file = open("../controller/routes/"+str(sys.argv[1])+"_routes.txt", 'r')
     routes = route_file.readlines()
 
@@ -58,8 +65,6 @@ def main():
         # print parameters
         command = ["ip", "route", "add", parameters[1], "via", parameters[2], "dev", parameters[3]]
         subprocess.call(command)
-
-
 
     end = round(time.time()*1000)
     timelapsed = end-start

@@ -1,1 +1,2 @@
-This process from sat850. It takes 24776.0ms to complete 
+This process from sat850. It takes 22129.0ms to complete 
+This process from sat850. It takes 22166.0ms to complete 

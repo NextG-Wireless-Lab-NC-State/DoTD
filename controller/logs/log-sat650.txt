@@ -1,1 +1,2 @@
-This process from sat650. It takes 22520.0ms to complete 
+This process from sat650. It takes 27436.0ms to complete 
+This process from sat650. It takes 20790.0ms to complete 

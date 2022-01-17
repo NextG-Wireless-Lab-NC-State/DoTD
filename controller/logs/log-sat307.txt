@@ -1,1 +1,2 @@
-This process from sat307. It takes 21605.0ms to complete 
+This process from sat307. It takes 21310.0ms to complete 
+This process from sat307. It takes 20107.0ms to complete 

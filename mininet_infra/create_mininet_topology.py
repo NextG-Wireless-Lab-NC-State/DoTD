@@ -269,7 +269,7 @@ class sat_network(Topo):
 
     def startRoutingConfig(self, net, satellites, ground_stations, intfs):
         patch_size = 10.0
-        intervals = int(math.ceil(len(satellites)/float(patch_size)))
+        intervals = int(math.ceil(len(satellites)-1400/float(patch_size)))
         print intervals
         remaining_sats = len(satellites)
         for v in range(intervals):
@@ -280,8 +280,9 @@ class sat_network(Topo):
             for i in range(start, end, 1):
                 sat_node = net.getNodeByName("sat"+str(i))
                 # print("Start routing config for .....,"+"sat"+str(i))
-                sat_node.cmd("python ../comm_protocol/config_initial_routes.py "+"sat"+str(i)+" &")
+                # sat_node.cmd("python ../comm_protocol/config_initial_routes.py "+"sat"+str(i)+" &")
+                sat_node.cmd("python ../comm_protocol/config_gs_sat_table.py "+"sat"+str(i)+" &")
 
-            time.sleep(30)
-            for i in range(start, end, 1):
-                sat_node.cmd("pkill -f 'python ../comm_protocol/config_initial_routes.py sat"+str(i)+"'")
+            # time.sleep(30)
+            # for i in range(start, end, 1):
+            #     sat_node.cmd("pkill -f 'python ../comm_protocol/config_initial_routes.py sat"+str(i)+"'")

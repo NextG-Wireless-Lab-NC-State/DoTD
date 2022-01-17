@@ -7,6 +7,34 @@ import sys
 import control_mgs_pb2 as ControlMsg
 import mc_msgs_pb2 as MCMsgs
 
+def get_intf(filename):
+    Intf_file = open(filename, 'r')
+    lines = Intf_file.readlines()
+    list_of_Intf_IPs = []
+
+    for i in range(len(lines)):
+        intf, ip = lines[i].strip().split("\t")
+        list_of_Intf_IPs.append({"Interface": intf, "IP": ip})
+
+    return list_of_Intf_IPs
+
+def get_all_sat_intf(list_of_Intf_IPs, satname):
+    sat_intf = []
+    for dct in list_of_Intf_IPs:
+        if satname in dct["Interface"]:
+            sat_intf.append(dct)
+
+    return sat_intf
+
+def get_network_address(str_ip_address):
+    # Assuming /28 subnet mask
+    ip_oct1, ip_oct2, ip_oct3, ip_oct4 = str_ip_address.split(".")
+    net_add1= int(ip_oct1) & 255
+    net_add2= int(ip_oct2) & 255
+    net_add3= int(ip_oct3) & 255
+    net_add4= int(ip_oct4) & 240
+
+    return str(net_add1)+"."+str(net_add2)+"."+str(net_add3)+"."+str(net_add4)
 
 def connection_establishment(a_mgnt_IP, a_mgnt_port):
     UDPSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
@@ -56,6 +84,24 @@ def route_update_msg_handler(message_command, message_receiver, route_update_typ
 
         with open('logs/log-'+satname+'.txt', 'a') as f:
             process = subprocess.Popen(command, stdout=f)
+
+def gsl_update_msg_handler(message_command, message_receiver, gsl_update_type, gs_gateway, gs):
+    if satname == message_receiver or message_receiver == "all":
+        list_of_Intf_IPs = get_intf("constellation_ip_assignment.txt")
+        sat_intf = get_all_sat_intf(list_of_Intf_IPs, "sat"+str(gs_gateway))
+
+        for intf in sat_intf:
+            ps = subprocess.Popen(("route","-n"),stdout=subprocess.PIPE)
+            try:
+                output = subprocess.check_output(('grep',get_network_address(str(intf["IP"]))),stdin=ps.stdout)
+                ls_output = output.split()
+                #['172.16.0.0', '0.0.0.0', '255.255.0.0', 'U', '0', '0', '0', 'enp0s8']
+                command = ["ip", "route", "add", gs_ip, "via", route_next_hop_for_GS_Gateway_seen_at_this_sat(output[1]), "dev", route_out_interface_for_GS_Gateway_seen_at_this_sat(output[7])]
+            except subprocess.CalledProcessError as e:
+                print(e.output)
+
+        # output = subprocess.check_output(('awk','{print $1}'),stdin=ps.stdout)
+
 
 # def gsl_update_msg_handler(message_command, message_receiver, gs_name, gs_ip, last_hop_satellite_name, last_hop_satellite_ip, change_route_time, connectivity_matrix, num_of_satellites):
 #     # get the satellite name. That will be used later to check if the message is sent to this satellite

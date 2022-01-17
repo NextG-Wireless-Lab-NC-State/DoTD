@@ -188,7 +188,29 @@ def main():
         for change in route_changes:
             print change
             #changes in the GSL links
-            if change[0] >= num_of_satellites or change[1] >= num_of_satellites:
+            if change[0] < num_of_satellites:
+                if change[1] >= num_of_satellites and (change[2] == 0 and change[3] == 1):
+                    msg                         = MCMsgs.mega_constellation_msg()
+                    msg.message_type            = 3
+                    msg.gsl_update_type         = 0
+
+                    msg.gs_gateway              = change[0]
+                    msg.gs                      = change[1]
+                elif change[1] >= num_of_satellites and (change[2] == 1 and change[3] == 0):
+                   msg                         = MCMsgs.mega_constellation_msg()
+                   msg.message_type            = 3
+                   msg.gsl_update_type         = 1
+
+                   msg.gs_gateway              = change[0]
+                   msg.gs                      = change[1]
+
+                print msg
+                serverAddressPort=("255.255.255.255", 20001)
+                UDPClientSocket = socket(family=AF_INET, type=SOCK_DGRAM)
+                UDPClientSocket.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+                UDPClientSocket.sendto(msg.SerializeToString(), serverAddressPort)
+                UDPClientSocket.close()
+
                 gsl_ch += 1
             # changes in the ISL links
             elif change[0] < num_of_satellites and change[1] < num_of_satellites:

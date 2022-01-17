@@ -34,4 +34,12 @@ message mega_constellation_msg {
   optional string last_hop_satellite_name = 18;
   optional string last_hop_satellite_ip = 19;
   optional string change_route_time = 20;
+
+  enum GSLink_update_type{
+    ADD = 0;
+    DELETE = 1;
+  }
+  optional GSLink_update_type gsl_update_type = 21;
+  optional string gs_gateway = 22;
+  optional string gs = 23;
 }
