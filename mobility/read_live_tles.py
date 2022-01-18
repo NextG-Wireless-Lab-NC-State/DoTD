@@ -11,6 +11,7 @@ import math
 import wget
 import os
 import statistics
+import jenkspy
 
 import sys
 from mobility_utils import *
@@ -30,6 +31,59 @@ def get_orbital_planes(tle_filename, shell_num):
                 orbital_data[Lines[i].strip()] = (tle_second_line[2], tle_second_line[3], orbital_num) #Satellite name: (Inclination, Longitude of the ascending node, orbital number)
                 # print Lines[i].strip(), (tle_second_line[2], tle_second_line[3], orbital_num)
     return orbital_data
+
+def get_orbital_planes_classifications(tle_filename, shell_num):
+
+    data_orbits                 = {}
+    number_of_orbits            = 72
+    number_of_sats_per_orbits   = 22
+
+    dump_orbital_data           = {"Satellites": [], "Inclination": [], "Longitude of the ascending node": []}
+
+    tle_file = open(tle_filename, 'r')
+    Lines = tle_file.readlines()
+
+    # First, we dump the TLE files into the dump_orbital_data variable
+    # We read the three lines by three lines, and save satellite names, inclination and Longitude of the ascending node
+    for i in range(0,len(Lines),3):
+        tle_second_line = list(filter(None, Lines[i+2].strip("\n").split(" ")))
+
+        if shell_num == 1:
+            if float(tle_second_line[2]) < 53.1: #Inclination of shell 1 should be 53.0 degrees
+                dump_orbital_data["Satellites"].append(Lines[i].strip())
+                dump_orbital_data["Inclination"].append(tle_second_line[2])
+                dump_orbital_data["Longitude of the ascending node"].append(tle_second_line[3])
+
+    list_of_values = [-1 for c in range(len(dump_orbital_data["Longitude of the ascending node"]))]
+    for i in range(0, len(dump_orbital_data["Longitude of the ascending node"])):
+        list_of_values[i] = float(dump_orbital_data["Longitude of the ascending node"][i])
+
+    print len(dump_orbital_data["Longitude of the ascending node"])
+    breaks = jenkspy.jenks_breaks(list_of_values, nb_class=number_of_orbits)
+    totalsatellites = 0
+    for b in range(1, len(breaks)):
+        upperBound_of_class = float(breaks[b])
+        lowerBound_of_class = float(breaks[b-1])
+        class_num = b-1
+        print "Class -------------------- "+str(class_num)
+        count_sats_per_orbit = 0
+
+        for i,j in itertools.izip(range(len(dump_orbital_data["Satellites"])), range(len(dump_orbital_data["Longitude of the ascending node"]))):
+            if b == 1:
+                if float(dump_orbital_data["Longitude of the ascending node"][j]) <= upperBound_of_class and float(dump_orbital_data["Longitude of the ascending node"][j]) >= lowerBound_of_class:
+                    # print dump_orbital_data["Satellites"][i], dump_orbital_data["Longitude of the ascending node"][j]
+                    data_orbits[dump_orbital_data["Satellites"][i]] = ("53.0", dump_orbital_data["Longitude of the ascending node"][j], class_num)#Satellite name: (Inclination, Longitude of the ascending node, orbital number)
+                    count_sats_per_orbit += 1
+            else:
+                if float(dump_orbital_data["Longitude of the ascending node"][j]) <= upperBound_of_class and float(dump_orbital_data["Longitude of the ascending node"][j]) > lowerBound_of_class:
+                    data_orbits[dump_orbital_data["Satellites"][i]] = ("53.0", dump_orbital_data["Longitude of the ascending node"][j], class_num)#Satellite name: (Inclination, Longitude of the ascending node, orbital number)
+                    count_sats_per_orbit += 1
+        print "Num of Sats ----------------", count_sats_per_orbit
+        totalsatellites += count_sats_per_orbit
+
+    print totalsatellites
+
+    return data_orbits
 
 def get_orbital_planes_ML(tle_filename, shell_num):
     data_orbits                 = {}
@@ -57,6 +111,9 @@ def get_orbital_planes_ML(tle_filename, shell_num):
 
     satellites_in_class         = [[] for c in range(len(dump_orbital_data["Satellites"]))]
     classes_data                = [[] for c in range(len(dump_orbital_data["Satellites"]))]
+
+    for v in dump_orbital_data["Longitude of the ascending node"]:
+        print v
 
     print "\n"
     print "len of sats:,", len(dump_orbital_data["Satellites"])
@@ -145,12 +202,74 @@ def get_orbital_planes_ML(tle_filename, shell_num):
     print "Number of Unclassified Satellites = ", len(unclassified_sats)
 
     if counter_for_classes > number_of_orbits:
-        print "Error: Number of extracted orbits ("+str(counter_for_classes)+") > number of configured orbits ("+str(number_of_orbits)+") - check the read_live_tles.py file"
-        exit()
+        print "Info: Number of extracted orbits ("+str(counter_for_classes)+") > number of configured orbits ("+str(number_of_orbits)+") - that will be fixed now ..."
+        # for nd, orbit in enumerate(orbits.values()):
+        #     for va in (orbit[0]):
+        #         print va
+        #     print "--------->", nd, orbit[2],orbit[3], len(orbit[0])
+        #
+        # print "----------------------------------------------------------------------------------------------------------------------------------------------------------------"
+        merge_potential = []
+        merge_potential_index = []
+        for nd, orbit in enumerate(orbits.values()):
+            if len(orbit[0]) < 10:
+                merge_potential.append(orbit)
+                merge_potential_index.append(nd)
 
+        print len(merge_potential)
+        for mg in merge_potential:
+            min_difference = 100000
+            min_index = -1
+            for nd, orbit in enumerate(orbits.values()):
+                if abs(orbit[2] - mg[2]) < min_difference and abs(orbit[2] - mg[2]) != 0:
+                    min_difference = abs(orbit[2] - mg[2])
+                    min_index = nd
+
+            if min_index != -1:
+                # print min_difference
+                for vals1, vals2 in itertools.izip(mg[0], mg[1]):
+                    orbits[min_index][0].append(vals1)
+                    orbits[min_index][1].append(vals2)
+                    temp_list = orbits[min_index][1]
+                    for i in range(0, len(temp_list)):
+                        temp_list[i] = float(temp_list[i])
+
+                    data_orbits[vals1] = ("53.0", vals2, min_index, statistics.mean(temp_list), statistics.stdev(temp_list))
+
+                temp_list = orbits[min_index][1]
+                for i in range(0, len(temp_list)):
+                    temp_list[i] = float(temp_list[i])
+
+                orbits[min_index] = (orbits[min_index][0], orbits[min_index][1], statistics.mean(temp_list), statistics.stdev(temp_list))
+
+        for inds in merge_potential_index:
+            orbits.pop(inds)
+
+        for i,j in itertools.izip(range(number_of_orbits), orbits.keys()):
+            orbits[i] = orbits.pop(j)
+            # print i, j, orbits[i]
+            # if i not in orbits:
+
+        # This is for debug purposes:
+        allsats = 0
+        for nd, orbit in enumerate(orbits.values()):
+            for sats in orbit[0]:
+                print sats
+
+            print "--------->", nd, orbit[2],orbit[3], len(orbit[0])
+            allsats += len(orbit[0])
+
+        print "total_sats = ",allsats
+
+        # exit()
+
+    # print orbits.keys()
+    # exit()
+    print unclassified_sats
     # Lastly, we use the orbit dict to classify the remaining unclassified satellites to their closest orbit.
     for satellites in unclassified_sats:
         index = dump_orbital_data["Satellites"].index(satellites)
+        print "satellite: ", satellites, "Long: ", dump_orbital_data["Longitude of the ascending node"][index]
         minVal = 100000
         minIndx = -1
         for ind, orbi in enumerate(orbits.values()):
@@ -158,6 +277,7 @@ def get_orbital_planes_ML(tle_filename, shell_num):
             if abs(float(mean_Longitude) - float(dump_orbital_data["Longitude of the ascending node"][index])) < minVal:
                 minVal = abs(float(mean_Longitude) - float(dump_orbital_data["Longitude of the ascending node"][index]))
                 minIndx = ind
+                # print minVal, minIndx, orbi[0], satellites
 
         if minIndx != -1:
             orbits[minIndx][0].append(satellites)

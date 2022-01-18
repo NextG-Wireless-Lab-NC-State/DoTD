@@ -161,8 +161,10 @@ def main():
         tle_file = wget.download(tle_url, out = "./data_gen/current_tle_data/")
 
         # orbital_data = get_orbital_planes("./data_gen/starlink.txt",1)
-        orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
+        # orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
 
+        orbital_data = get_orbital_planes_classifications("./data_gen/current_tle_data/starlink.txt",1)
+        
         ts = load.timescale()
         t = ts.now()
         print t.utc_strftime()
@@ -287,7 +289,9 @@ def main():
 
             if change[0] < num_of_satellites:
                 if change[1] >= num_of_satellites and (change[2] == 0 and change[3] == 1):
-                    gs_ip = get_gs_ip(list_of_Intf_IPs, "gs"+str(item["list_of_gs"][i])+"-eth1")
+                    gsl_ch += 1
+                    gs_number = int(change[1])%num_of_satellites
+                    gs_ip = get_gs_ip(list_of_Intf_IPs, "gs"+str(gs_number)+"-eth1")
                     gs_network_address = get_network_address(gs_ip)
                     print gs_ip, gs_network_address
                     # parameters = find_the_route_of_this_destination_sat(item["satellite"], list_of_Intf_IPs)
@@ -296,7 +300,7 @@ def main():
 
                 # elif change[1] >= num_of_satellites and (change[2] == 1 and change[3] == 0):
 
-                gsl_ch += 1
+                # gsl_ch += 1
             # changes in the ISL links
             elif change[0] < num_of_satellites and change[1] < num_of_satellites:
                 isl_ch += 1
