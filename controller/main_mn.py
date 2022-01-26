@@ -40,6 +40,26 @@ from routing.routing_utils import *
 from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
+def find_route_between_src_dest(src_sat, dest_sat, constellation_routes):
+    if src_sat < dest_sat:
+        for route in constellation_routes[src_sat]:
+            # print route
+            current_route = route[0][:]
+            if "sat"+str(src_sat) == "sat"+str(current_route[0]) and "sat"+str(dest_sat) == "sat"+str(current_route[len(current_route)-1]):
+                return current_route
+
+    # This is added because in constellation_routes and in initial_routes, we only store the route from x to y but not the route for y to x.
+    # We do that to minimize the calcuations. Therefore, sometimes if src_sat > dest_sat, we need to search in the opposite direction
+    if src_sat > dest_sat:
+        for route in constellation_routes[dest_sat]:
+            current_route = route[0][:]
+            if "sat"+str(src_sat) == "sat"+str(current_route[len(current_route)-1]) and "sat"+str(dest_sat) == "sat"+str(current_route[0]):
+                retr_route = route[0][:]
+                retr_route.reverse()
+                return retr_route
+
+    return -1
+
 def get_gs_ip(list_of_Intf_IPs, gs):
     for pair in list_of_Intf_IPs:
         if gs in pair["Interface"]:
@@ -91,7 +111,7 @@ def log_info_for_controller(current_time, links, m_intfs, satellites_by_index, s
 
     for route in routes:
         if len(route[0]) > 2:
-            current_route = route[0]
+            current_route = route[0][:]
             src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
             src_node = "sat"+str(src_node) if src_node < len(satellites_by_index) else "gs"+str(src_node%len(satellites_by_index))
             dest_node = "sat"+str(dest_node) if dest_node < len(satellites_by_index) else "gs"+str(dest_node%len(satellites_by_index))
@@ -115,7 +135,7 @@ def log_info_for_controller(current_time, links, m_intfs, satellites_by_index, s
 
 def main():
     USE_OLD_ROUTE_FILES = False
-    simulation_time_in_seconds = 100
+    simulation_time_in_seconds = 60
     step_in_seconds = 1
 
     N = 3
@@ -164,7 +184,7 @@ def main():
         # orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
 
         orbital_data = get_orbital_planes_classifications("./data_gen/current_tle_data/starlink.txt",1)
-        
+
         ts = load.timescale()
         t = ts.now()
         print t.utc_strftime()
@@ -243,11 +263,42 @@ def main():
 
     # for route in initial_routes:
     #     print route
+    start = round(time.time()*1000)
+
+    copy_initial_routes = initial_routes[:]
+    constellation_routes = {k: [] for k in range(num_of_satellites)}
+    for route in copy_initial_routes:
+        current_route = route[0]
+        i = current_route[0]
+        constellation_routes[i].append(route)
+
+    # for i in range(num_of_satellites):
+    #     for route in copy_initial_routes:
+    #         current_route = route[0]
+    #         if "sat"+str(i) == "sat"+str():
+    #             if route not in constellation_routes[i]:
+    #                 constellation_routes[i].append(route)
+
+    end = round(time.time()*1000)
+    print "------ constellation_routes ", end-start, "ms "
+
+    # route_to_sat_GW = find_route_between_src_dest(51, 50, constellation_routes)
+    # print route_to_sat_GW
+    #
+    # for key, values in itertools.izip(constellation_routes.keys(), constellation_routes.values()):
+    #     for value in values:
+    #         print key, value
+    # for i in range(num_of_satellites):
+    #     route_to_sat_GW = find_route_between_src_dest(0, i, constellation_routes)
+    #     print route_to_sat_GW
+    #
+    # exit()
     # start = round(time.time()*1000)
     # initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
     #
     # end = round(time.time()*1000)
     # print "Initial routing took ", end-start, "ms"
+
 
     topology = sat_network(N=N)
     topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=link_chara["throughput_matrix"], link_latency=link_chara["latency_matrix"])
@@ -261,12 +312,31 @@ def main():
     old_secs = newscs
     ts = load.timescale()
     addthis = 0;
+    #
+    # start = round(time.time()*1000)
+    # constellation_routes = {k: [] for k in range(num_of_satellites)}
+    # for i in range(num_of_satellites):
+    #     for route in initial_routes:
+    #         current_route = route[0]
+    #         if "sat"+str(i) == "sat"+str(current_route[0]):
+    #             if route not in constellation_routes[i]:
+    #                 constellation_routes[i].append(route)
+    #
+    # for key, values in itertools.izip(constellation_routes.keys(), constellation_routes.values()):
+    #     for value in values:
+    #         print key, value
+    #
+    # end = round(time.time()*1000)
+    # print "------ constellation_routes ", end-start, "ms "
+
+    links_updated = topg["isl_gls_links"][:]
 
     while simulation_time_in_seconds > 0:
         simulation_time_in_seconds -= step_in_seconds
         addthis += step_in_seconds
         t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs)+addthis)
         print t2.utc_strftime()
+
 
         new_GS_SAT_Table = [[] for i in range(num_of_satellites)]
         new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
@@ -284,28 +354,49 @@ def main():
 
         gsl_ch = 0
         isl_ch = 0
-        for change in route_changes:
-            print change
-
-            if change[0] < num_of_satellites:
-                if change[1] >= num_of_satellites and (change[2] == 0 and change[3] == 1):
-                    gsl_ch += 1
+        update_gsl_routing_cmd = []
+        if len(route_changes) < 1000:
+            for change in route_changes:
+                start = round(time.time()*1000)
+                print change
+                if change[0] < num_of_satellites and change[1] >= num_of_satellites:
                     gs_number = int(change[1])%num_of_satellites
-                    gs_ip = get_gs_ip(list_of_Intf_IPs, "gs"+str(gs_number)+"-eth1")
+                    gs_ip = get_gs_ip(list_of_Intf_IPs, "gs"+str(gs_number)+"-eth1").split("/")[0]
                     gs_network_address = get_network_address(gs_ip)
-                    print gs_ip, gs_network_address
-                    # parameters = find_the_route_of_this_destination_sat(item["satellite"], list_of_Intf_IPs)
 
+                    for i in range(num_of_satellites):
+                        route_to_sat_GW = find_route_between_src_dest(i, change[0], constellation_routes)
+                        if route_to_sat_GW != -1:
+                            parameters = get_static_route_parameter([route_to_sat_GW], links_updated, list_of_Intf_IPs, satellites_by_index);
+                            if len(parameters) > 0:
+                                if change[2] == 0 and change[3] == 1:
+                                    update_gsl_routing_cmd.append("ip route add "+str(gs_network_address)+" via "+str(parameters[2])+" dev "+str(parameters[3]))
+                                elif change[2] == 1 and change[3] == 0:
+                                    update_gsl_routing_cmd.append("ip route del "+str(gs_network_address)+" via "+str(parameters[2])+" dev "+str(parameters[3]))
+                        else:
+                            print "Error: cannot find the route between sat", i, " and sat", change[0]
+                            # exit()
+                    gsl_ch += 1
 
-
-                # elif change[1] >= num_of_satellites and (change[2] == 1 and change[3] == 0):
-
-                # gsl_ch += 1
             # changes in the ISL links
-            elif change[0] < num_of_satellites and change[1] < num_of_satellites:
-                isl_ch += 1
+                elif change[0] < num_of_satellites and change[1] < num_of_satellites:
+                    isl_ch += 1
 
-        print gsl_ch, isl_ch
+                end = round(time.time()*1000)
+                print "one iteration of change --- ", end-start, "ms "
+                
+            if len(update_gsl_routing_cmd) > 0:
+                start = round(time.time()*1000)
+                updates_log = open("./data_gen/current_tle_data/routing_updates_"+str(t2.utc_strftime())+"_.txt", "w")
+                for update in update_gsl_routing_cmd:
+                    updates_log.write(str(update) + "\n")
+
+                end = round(time.time()*1000)
+                print "writing to file ", end-start, "ms "
+
+                updates_log.close()
+
+            print gsl_ch, isl_ch
 
         last_CMatrix = new_CMatrix[:]
 
@@ -325,7 +416,8 @@ def main():
     #     print route
     # topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
     # topology.startworker(net, satellites_by_index, ground_stations, topg["management_interface"])
-    # topology.startRoutingConfig(net, satellites_by_index, ground_stations, topg["management_interface"])
+    topology.startRoutingConfig(net, satellites_by_index, ground_stations, topg["management_interface"])
+    # I will need to add a function here to read these "updates_log = open("./data_gen/current_tle_data/routing_updates_"+str(t2.utc_strftime())+"_.txt", "w")" files and update the routing info.
     CLI( net)
     # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
     # UDPSocket.bind(("", 20001))

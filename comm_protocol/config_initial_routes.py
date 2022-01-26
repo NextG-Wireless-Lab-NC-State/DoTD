@@ -46,13 +46,13 @@ def get_sats_by_index(filename):
     return satellites
 
 def main():
-    links = get_links("../controller/links_log.txt")
-    list_of_Intf_IPs = get_intf("../controller/constellation_ip_assignment.txt")
-    satellites_by_index = get_sats_by_index("../controller/satellites_by_index_log.txt")
+    links = get_links("../controller/data_gen/current_tle_data/links_log.txt")
+    list_of_Intf_IPs = get_intf("../controller/data_gen/current_tle_data/constellation_ip_assignment.txt")
+    satellites_by_index = get_sats_by_index("../controller/data_gen/current_tle_data/satellites_by_index_log.txt")
 
     GS_SAT_Table = get_gs_sat_table()
 
-    route_file = open("../controller/routes/"+str(sys.argv[1])+"_routes.txt", 'r')
+    route_file = open("../controller/data_gen/current_tle_data/routes/"+str(sys.argv[1])+"_routes.txt", 'r')
     routes = route_file.readlines()
 
     start = round(time.time()*1000)

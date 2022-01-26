@@ -68,7 +68,7 @@ def initial_routing_v2(satellites, ground_stations, connectivity_matrix, latency
 
     static_routing_list_args = []
     print "number of egdes ", len(mega_constellation_graph.edges())
-    for p in range(10):#len(satellites)+len(ground_stations)
+    for p in range(len(satellites)+len(ground_stations)):#len(satellites)+len(ground_stations)
         for q in range(p, len(satellites)):#+len(ground_stations)
             static_routing_list_args.append((mega_constellation_graph, p, q))
 
@@ -193,7 +193,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
 
         # print dest_node_intf
         if dest_node_intf != "":
-            dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs))+"/28"
+            dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs).split("/")[0])+"/28"
             next_hop_ip = get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)
             out_interface = src_node_intf
         else:
@@ -201,7 +201,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
             exit()
 
         if src_node_intf != "":
-            src_nw_ip = get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs))+"/28"
+            src_nw_ip = get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs).split("/")[0])+"/28"
             last_hop_ip = get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)
             out_interface_2 = dest_node_intf
         else:
