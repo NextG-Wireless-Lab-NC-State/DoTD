@@ -31,7 +31,6 @@ import shutil
 
 import sys
 sys.path.append("../")
-from mobility.read_real_tles import *
 from mobility.read_live_tles import *
 from mobility.mobility_utils import *
 from mobility.read_gs import *
@@ -319,7 +318,7 @@ def main():
 
     actual_time = 0
     loggedTime = ""
-    data_timestamp = "2022,02,24,11,51,57.458358" #"2022,02,21,14,25,48.223" #"2022,03,14,12,15,31.444472" #"2022,03,13,17,47,50.471182" #"2022,03,11,21,36,16.304442" #"2022,02,24,11,51,57.458358"
+    data_timestamp = "2022,03,16,11,29,36.124013"
     data_path = "../data_gen/archieved_data_"+str(data_timestamp)
 
     N = 3
@@ -367,9 +366,9 @@ def main():
         }
 
         # ground_stations = [gs_Alan, gw_starlink]
-        satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+        satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt")
 
-        satellites_by_name = {sat.name: sat for sat in satellites}
+        satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
         satellites_by_index = {}
 
         orbital_data = get_orbital_planes_classifications(data_path+"/starlink.txt",1)
@@ -399,7 +398,7 @@ def main():
         }
 
         # ground_stations = [gs_Alan, gw_starlink]
-        satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+        satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt")
 
         satellites_by_name_from_file = get_sats_by_name(data_path+"/satellites_by_name_log.txt")
         satellites_by_name = {sat.name: sat for sat in satellites if sat.name in satellites_by_name_from_file}
@@ -419,7 +418,7 @@ def main():
         cn = 0
         for data in orbital_data:
             if i == int(orbital_data[str(data)][2]):
-                satellites_in_orbit.append(satellites_by_name[str(data)])
+                satellites_in_orbit.append(satellites_by_name[str(data.split(" ")[0])])
                 if DEBUG == 1:
                     print i, data, orbital_data[str(data)]
                 cn +=1
@@ -436,7 +435,7 @@ def main():
     for orbit in satellites_sorted_in_orbits:
         for i in range(len(orbit)):
             sat_index += 1
-            satellites_by_index[sat_index] = orbit[i].name
+            satellites_by_index[sat_index] = orbit[i].name.split(" ")[0]
 ####
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
@@ -502,73 +501,9 @@ def main():
     #exit()
 ####
 
-    # thread_performance = threading.Thread(target=ping_thread, args=(net,))
-    # thread_performance.start()
-    # #
-    # updates_files_name = []
-    # for fileLog in os.listdir(data_path):
-    #     if fileLog.startswith("allchanges_log"):
-    #         a = re.split('_| ',fileLog)
-    #         filesd = a[2]+" "+a[3]+" "+a[4]
-    #         updates_files_name.append(filesd)
-    #
-    # updates_files_name.sort()
-    #
-    # # # updates_files_name = ['2022-02-24 11:51:59 UTC', '2022-02-24 11:52:00 UTC', '2022-02-24 11:52:01 UTC', '2022-02-24 11:52:02 UTC',
-    # # #                     '2022-02-24 11:52:03 UTC', '2022-02-24 11:52:04 UTC', '2022-02-24 11:52:05 UTC', '2022-02-24 11:52:06 UTC',
-    # # #                     '2022-02-24 11:52:07 UTC', '2022-02-24 11:52:00 UTC', '2022-02-24 11:52:09 UTC', '2022-02-24 11:52:10 UTC',
-    # # #                     '2022-02-24 11:52:11 UTC', '2022-02-24 11:52:12 UTC', '2022-02-24 11:52:13 UTC', '2022-02-24 11:52:14 UTC',
-    # #                     '2022-02-24 11:52:15 UTC', '2022-02-24 11:52:16 UTC', '2022-02-24 11:52:17 UTC']
-    #
-    # startmain = round(time.time() * 1000)
-    # time_counter = 0
-    # for file in updates_files_name:
-    #     if time_counter > SimulationTime_secs:
-    #         endmain = round(time.time() * 1000)
-    #         print "overalll ---> ", endmain-startmain
-    #         exit()
-    #     st = round(time.time() * 1000)
-    #     print "[ %0.12f" % round(time.time() * 1000),"] Start --> ", file
-    #     net = update_loop(data_path, net, file, num_of_satellites);
-    #     print "[ %0.12f" % round(time.time() * 1000),"] End   --> ", file
-    #     time_counter += 1
-    #     # time.sleep(1)
-    # # time.sleep(30)
-    # exit()
-####
-
 ####
 # [[Iterative Simulation]] Now we compute the changes in the topology ever Step_secs and store that.
 #
-
-    # AllRoutesParameters = {(k,k): () for k in range(len(TopologyRoutes["All_PreConfigured_routes"]))}
-    # thread_list = []
-    # start1 = round(time.time()*1000)
-    # num_t = 20;
-    # sublist_len = len(TopologyRoutes["All_PreConfigured_routes"])/num_t
-    # for i in range(0, len(TopologyRoutes["All_PreConfigured_routes"]), sublist_len):
-    #     subroutes = TopologyRoutes["All_PreConfigured_routes"][i:i+sublist_len]
-    #     thread = threading.Thread(target=read_staticParameters, args=(subroutes, topg["isl_gls_links"], list_of_Intf_IPs, satellites_by_index, AllRoutesParameters))
-    #     thread_list.append(thread)
-    #
-    # for thread in thread_list:
-    #     thread.start()
-    # for thread in thread_list:
-    #     thread.join()
-    #
-    # end = round(time.time()*1000)
-    #
-    # print " AllRoutesParameters took ", end-start1, "ms "
-    # updates_files_name = ["2022-02-24 11:51:59 UTC_.txt"]
-    # start = round(time.time()*1000)
-    # topology.updateRoutingTables(data_path, net, updates_files_name, 0, num_of_satellites)
-    # end = round(time.time()*1000)
-    # if DEBUG == 1:
-    #     print " Deploy the IP Route commands for whole constellation took ", end-start, "ms "
-    # # topology.updateRoutingTables_timer(Step_secs, data_path, net, updates_files_name, num_of_satellites, 0)
-    # CLI(net)
-    # net.stop()
-
     addthis = 0
     links_updated = topg["isl_gls_links"][:]
     last_CMatrix = []
@@ -577,6 +512,9 @@ def main():
         start1 = round(time.time()*1000)
         SimulationTime_secs -= Step_secs
         addthis += Step_secs
+
+        if FreshRun == True:
+            actual_time = get_time(data_path+"/time_log.txt")
 
         ts = load.timescale()
         actual_time_increment = ts.utc(int(actual_time["year"]), int(actual_time["month"]), int(actual_time["day"]), int(actual_time["hour"]), int(actual_time["minutes"]), float(actual_time["newscs"])+addthis)
@@ -603,10 +541,38 @@ def main():
         last_CMatrix = new_CMatrix[:]
         end1 = round(time.time()*1000)
         print " Route update iteration took  ", (end1-start1), "ms "
-    CLI(net)
-    net.stop()
+    # CLI(net)
+    # net.stop()
     # exit()
 ####
+####
+
+thread_performance = threading.Thread(target=ping_thread, args=(net,))
+thread_performance.start()
+#
+updates_files_name = []
+for fileLog in os.listdir(data_path):
+    if fileLog.startswith("allchanges_log"):
+        a = re.split('_| ',fileLog)
+        filesd = a[2]+" "+a[3]+" "+a[4]
+        updates_files_name.append(filesd)
+
+updates_files_name.sort()
+
+time_counter = 0
+for file in updates_files_name:
+    if time_counter > SimulationTime_secs:
+        exit()
+
+    st = round(time.time() * 1000)
+    print "[ %0.12f" % round(time.time() * 1000),"] Start --> ", file
+    net = update_loop(data_path, net, file, num_of_satellites);
+    print "[ %0.12f" % round(time.time() * 1000),"] End   --> ", file
+    time_counter += 1
+
+exit()
+####
+#####
 
 setLogLevel('info')    # 'info' is normal; 'debug' is for when there are problems
 main()

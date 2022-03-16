@@ -124,7 +124,7 @@ def find_adjacent_orbit_sat(current_plane, current_sat, adj_plane, satellites_so
             nearest_sat_in_adj_plane = adj_plane_sats[i]
 
 
-    return nearest_sat_in_adj_plane.name
+    return nearest_sat_in_adj_plane.name.split(" ")[0]
 
 def mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, isl_config, t):
     n_orbits = len(satellites_sorted_in_orbits)
@@ -195,7 +195,7 @@ def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_sa
         chosen_sid = -1
         best_distance_m = 1000000000000000
         for (distance_m, sid, gr_id) in ground_station_satellites_in_range:
-            print t.utc_strftime(), distance_m, sid, gr_id
+            # print t.utc_strftime(), distance_m, sid, gr_id
             if gid == gr_id:
                 # if gid != 1: # USE CASE 1 -- REMOVE for general run
                 if distance_m < best_distance_m:
