@@ -42,9 +42,9 @@ from comm_protocol.controller_main import *
 DEBUG = 1
 
 def ping_thread(net):
-    test_node = net.getNodeByName("gs0")
+    test_node = net.getNodeByName("gs13")
     test_node.cmd("date >> dump_99100.txt")
-    test_node.cmd("ping 10.1.138.114 >> dump_99100.txt")
+    test_node.cmd("ping 10.1.55.66 >> dump_99100.txt")
 
 def get_gs_sat_pairs(connectivity_matrix, num_of_satellites):
     pairs = []
@@ -401,7 +401,7 @@ def main():
         satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt")
 
         satellites_by_name_from_file = get_sats_by_name(data_path+"/satellites_by_name_log.txt")
-        satellites_by_name = {sat.name: sat for sat in satellites if sat.name in satellites_by_name_from_file}
+        satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites if sat.name.split(" ")[0] in satellites_by_name_from_file}
         satellites_by_index = {}
 
         orbital_data = get_orbital_planes_classifications(data_path+"/starlink.txt",1)
@@ -547,30 +547,30 @@ def main():
 ####
 ####
 
-thread_performance = threading.Thread(target=ping_thread, args=(net,))
-thread_performance.start()
-#
-updates_files_name = []
-for fileLog in os.listdir(data_path):
-    if fileLog.startswith("allchanges_log"):
-        a = re.split('_| ',fileLog)
-        filesd = a[2]+" "+a[3]+" "+a[4]
-        updates_files_name.append(filesd)
+    thread_performance = threading.Thread(target=ping_thread, args=(net,))
+    thread_performance.start()
+    #
+    updates_files_name = []
+    for fileLog in os.listdir(data_path):
+        if fileLog.startswith("allchanges_log"):
+            a = re.split('_| ',fileLog)
+            filesd = a[2]+" "+a[3]+" "+a[4]
+            updates_files_name.append(filesd)
 
-updates_files_name.sort()
+    updates_files_name.sort()
 
-time_counter = 0
-for file in updates_files_name:
-    if time_counter > SimulationTime_secs:
-        exit()
+    time_counter = 0
+    for file in updates_files_name:
+        if time_counter > SimulationTime_secs:
+            exit()
 
-    st = round(time.time() * 1000)
-    print "[ %0.12f" % round(time.time() * 1000),"] Start --> ", file
-    net = update_loop(data_path, net, file, num_of_satellites);
-    print "[ %0.12f" % round(time.time() * 1000),"] End   --> ", file
-    time_counter += 1
+        st = round(time.time() * 1000)
+        print "[ %0.12f" % round(time.time() * 1000),"] Start --> ", file
+        net = update_loop(data_path, net, file, num_of_satellites);
+        print "[ %0.12f" % round(time.time() * 1000),"] End   --> ", file
+        time_counter += 1
 
-exit()
+    exit()
 ####
 #####
 
