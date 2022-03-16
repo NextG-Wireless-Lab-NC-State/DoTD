@@ -61,4 +61,4 @@ prepare_routing_config_commands(topology, data_path, TopologyRoutes["All_PreConf
 ### Step.4: Iterate
 
 
-### Step.5: Run the application 
+### Step.5: Run the applications
