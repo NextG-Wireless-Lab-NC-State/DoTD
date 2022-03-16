@@ -1,2 +1,0 @@
-This process from sat1056. It takes 22500.0ms to complete 
-This process from sat1056. It takes 23060.0ms to complete 

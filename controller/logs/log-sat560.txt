@@ -1,2 +1,0 @@
-This process from sat560. It takes 23253.0ms to complete 
-This process from sat560. It takes 20000.0ms to complete 
