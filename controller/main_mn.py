@@ -40,30 +40,259 @@ from routing.routing_utils import *
 from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
-def find_route_between_src_dest(src_sat, dest_sat, constellation_routes):
-    if src_sat < dest_sat:
-        for route in constellation_routes[src_sat]:
-            # print route
+DEBUG = 1
+
+def ping_thread(net):
+    test_node = net.getNodeByName("gs0")
+    test_node.cmd("date >> dump_99100.txt")
+    test_node.cmd("ping 10.1.138.114 >> dump_99100.txt")
+    # while 1:
+    #     test_node.cmd("date >> dump.txt")
+    #     test_node.cmd("ifconfig >> dump.txt")
+    #     time.sleep(3)
+
+def get_gs_sat_pairs(connectivity_matrix, num_of_satellites):
+    pairs = []
+    for i in range(len(connectivity_matrix)):
+        for j in range(len(connectivity_matrix[i])):
+            if connectivity_matrix[i][j] == 1 and i < num_of_satellites and j > num_of_satellites:
+                pairs.append((i, j))
+
+    return pairs
+
+def update_loop(data_path, net, updates_files_name, num_of_satellites):
+    filename = data_path+"/allchanges_log_"+str(updates_files_name)+"_.txt"
+    updatefile = open(filename, 'r')
+    updates = updatefile.readlines()
+
+    if len(updates) < 1:
+        time.sleep(1)
+        return net
+
+    for update in updates:
+        update_links = update.split(",")       #330,1575,0,1
+        node1 = "sat"+str(update_links[0]) if int(update_links[0]) < num_of_satellites else "gs"+str(int(update_links[0])%num_of_satellites)
+        node2 = "sat"+str(update_links[1]) if int(update_links[1]) < num_of_satellites else "gs"+str(int(update_links[1])%num_of_satellites)
+        if node1 == "gs13" or node1 == "gs14" or node2 == "gs13" or node2 == "gs14":
+            print update_links
+        # print node1, node2
+        net_node1 = net.getNodeByName(node1)
+        net_node2 = net.getNodeByName(node2)
+
+        if update_links[2] == 1 and update_links[3].strip() == 0:
+            if net.linksBetween(net_node1, net_node2):
+                net.delLinkBetween(net_node1, net_node2)
+
+    for update in updates:
+        update_links = update.split(",")       #330,1575,0,1
+        node1 = "sat"+str(update_links[0]) if int(update_links[0]) < num_of_satellites else "gs"+str(int(update_links[0])%num_of_satellites)
+        node2 = "sat"+str(update_links[1]) if int(update_links[1]) < num_of_satellites else "gs"+str(int(update_links[1])%num_of_satellites)
+        if node1 == "gs13" or node1 == "gs14" or node2 == "gs13" or node2 == "gs14":
+            print update_links
+        # print node1, node2
+        net_node1 = net.getNodeByName(node1)
+        net_node2 = net.getNodeByName(node2)
+        if update_links[2] == 0 and update_links[3].strip() == 1:
+            net.addLink(net_node1, net_node2, cls=TCLink)
+
+            # gs_node_IP = get_node_intf_ip(str(node2)+"-eth1", list_of_Intf_IPs)
+            # oct1, oct2, oct3, oct4 = gs_node_IP.split(".")
+            # new_sat_IP = str(oct1)+str(oct2)+str(oct3)+str(oct4-1)
+            # net.addLink(net_node1, net_node2, cls=TCLink, params1 = {'ip' : new_sat_IP+"/28"}, params2 = {'ip' : gs_node_IP+"/28"})
+
+    for i in range(0, num_of_satellites):
+        sat_node = net.getNodeByName("sat"+str(i))
+        sat_node.cmd("./"+data_path+"/routes_updates_"+str(updates_files_name)+"/sat"+str(i)+"_routes.sh &")
+
+    return net
+
+def read_staticParameters(routes, links, list_of_Intf_IPs, satellite_by_index, AllRoutesParameters):
+    for route in routes:
+        parameters = get_static_route_parameter(route, links, list_of_Intf_IPs, satellite_by_index)
+        if len(parameters) > 0:
+            AllRoutesParameters[(parameters[0], parameters[4])] = (parameters[0], parameters[1], parameters[2], parameters[3], parameters[4], parameters[5], parameters[6], parameters[7])
+
+def read_IProute_files_thread(routes, initial_routes):
+    for route in routes:
+        route_new = []
+        route_list = re.split(", | |\n", route)
+        route = [int(r) for r in route_list if r.strip()]
+        route_new.append(route)
+        initial_routes.append(route_new)
+
+def get_topology_routes(FreshRun, data_path, num_of_satellites, satellites_by_index, ground_stations, connectivity_matrix, links_charateristics):
+    if FreshRun == True:
+        start = round(time.time()*1000)
+        initial_routes = initial_routing_v2(satellites_by_index, ground_stations, connectivity_matrix, links_charateristics["latency_matrix"])
+        end = round(time.time()*1000)
+        if DEBUG == 1:
+            print "Initial routing calculations took ", end-start, "ms ", "for ", len(initial_routes), " routes"
+
+        copy_initial_routes = initial_routes[:]
+        constellation_routes = {k: [] for k in range(num_of_satellites)}
+        for route in copy_initial_routes:
+            current_route = route[0]
+            i = current_route[0]
+            constellation_routes[i].append(route)
+
+    if FreshRun == False:
+        start = round(time.time()*1000)
+        constellation_routes = {m: [] for m in range(num_of_satellites)}
+        initial_routes = []
+        thread_list = []
+
+        Rfilename = data_path+"/routes/all_routes.txt"
+        route_file = open(Rfilename, 'r')
+        routes = route_file.readlines()
+
+        num_thread = 1000;
+        sublist_len = len(routes)/num_thread
+        for i in range(0, len(routes), sublist_len):
+            subroutes = routes[i:i+sublist_len]
+            thread = threading.Thread(target=read_IProute_files_thread, args=(subroutes, initial_routes))
+            thread_list.append(thread)
+
+        for thread in thread_list:
+            thread.start()
+        for thread in thread_list:
+            thread.join()
+
+        copy_initial_routes = initial_routes[:]
+        constellation_routes = {k: [] for k in range(num_of_satellites)}
+        for route in copy_initial_routes:
+            current_route = route[0]
+            i = current_route[0]
+            constellation_routes[i].append(route)
+
+        end = round(time.time()*1000)
+        if DEBUG == 1:
+            print " Get Initial routes from log files took ", end-start, "ms ", "for ", len(initial_routes), " routes"
+
+    return {
+                "All_PreConfigured_routes": initial_routes,
+                "Routes_per_satellites": constellation_routes
+            }
+
+def prepare_routing_config_commands(topology, data_path, initial_routes, topg, list_of_Intf_IPs, satellites_by_index, num_of_threads):
+    start = round(time.time()*1000)
+    ipRouteCMD = topology.create_static_routes_batch_parallel(initial_routes, topg["isl_gls_links"], list_of_Intf_IPs, satellites_by_index, num_of_threads)
+    logg = open(data_path+"/stat_r.sh", "w")
+    for c in ipRouteCMD:
+        logg.write(c)
+    logg.close()
+    end = round(time.time()*1000)
+    if DEBUG == 1:
+        print " Generate the IP Route commands for the whole constellation took ", end-start, "ms "
+
+    file1 = open(data_path+"/stat_r.sh", 'r')
+    Lines = file1.readlines()
+
+    if os.path.isdir(data_path+"/cmd_files") == False:
+        os.mkdir(data_path+"/cmd_files")
+
+    for f in os.listdir(data_path+"/cmd_files"):
+        os.remove(os.path.join(data_path+"/cmd_files", f))
+
+    count = 0
+    for line in Lines:
+        command = line.strip().split(" ")
+        file = open(data_path+"/cmd_files/"+command[0]+"_routes.sh", 'a')
+        string_to_write = ""
+        for i in range(1,len(command)):
+            string_to_write += command[i]+" "
+
+        file.writelines(string_to_write+"\n")
+        file.close()
+
+def dump_ALL(data_path, current_time, links, m_intfs, satellites_by_index, satellites_by_name, routes, GS_SAT_Table):
+    time_log = open(data_path+"/time_log.txt", "w")
+    links_log = open(data_path+"/links_log.txt", "w")
+    m_intf_log = open(data_path+"/m_intf_log.txt", "w")
+    satellitesInd_log = open(data_path+"/satellites_by_index_log.txt", "w")
+    satellitesName_log = open(data_path+"/satellites_by_name_log.txt", "w")
+
+#### Log Time
+    time_log.write(current_time + "\n")
+#### Log links
+    for link in links:
+        links_log.write(link + "\n")
+    links_log.close()
+#### Log management interfaces -- That is not used now
+    for intf in m_intfs:
+        m_intf_log.write(intf["node"] + "\t" + intf["mgnt_ip"] + "\n")
+    m_intf_log.close()
+#### Log satellites by index
+    for sat in satellites_by_index:
+        satellitesInd_log.write(str(sat) + "\n")
+    satellitesInd_log.close()
+#### Log satellites name accourding to Starlink (STARLINKXXXX)
+    for sat in satellites_by_name:
+        satellitesName_log.write(str(sat) + "\n")
+    satellitesName_log.close()
+#### Log initial routes
+    os.mkdir(data_path+"/routes")
+    for route in routes:
+        current_route = route[0][:]
+        routes_log = open(data_path+"/routes/all_routes.txt", "a")
+        routes_log.write(str(current_route)[1:-1] + "\n")
+        routes_log.close()
+
+    for route in routes:
+        if len(route[0]) > 2:
             current_route = route[0][:]
-            if "sat"+str(src_sat) == "sat"+str(current_route[0]) and "sat"+str(dest_sat) == "sat"+str(current_route[len(current_route)-1]):
-                return current_route
+            src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
+            src_node = "sat"+str(src_node) if src_node < len(satellites_by_index) else "gs"+str(src_node%len(satellites_by_index))
+            dest_node = "sat"+str(dest_node) if dest_node < len(satellites_by_index) else "gs"+str(dest_node%len(satellites_by_index))
+            routes_log = open(data_path+"/routes/"+str(src_node)+"_routes.txt", "a")
+            routes_log.write(str(current_route)[1:-1] + "\n")
+            routes_log.close()
 
-    # This is added because in constellation_routes and in initial_routes, we only store the route from x to y but not the route for y to x.
-    # We do that to minimize the calcuations. Therefore, sometimes if src_sat > dest_sat, we need to search in the opposite direction
-    if src_sat > dest_sat:
-        for route in constellation_routes[dest_sat]:
+            routes_log = open(data_path+"/routes/"+str(dest_node)+"_routes.txt", "a")
+            current_route.reverse()
+            routes_log.write(str(current_route)[1:-1] + "\n")
+            routes_log.close()
+
+        elif len(route[0]) == 2:
             current_route = route[0][:]
-            if "sat"+str(src_sat) == "sat"+str(current_route[len(current_route)-1]) and "sat"+str(dest_sat) == "sat"+str(current_route[0]):
-                retr_route = route[0][:]
-                retr_route.reverse()
-                return retr_route
+            src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-1]
+            src_node = "sat"+str(src_node) if src_node < len(satellites_by_index) else "gs"+str(src_node%len(satellites_by_index))
+            dest_node = "sat"+str(dest_node) if dest_node < len(satellites_by_index) else "gs"+str(dest_node%len(satellites_by_index))
+            routes_log = open(data_path+"/routes/"+str(src_node)+"_routes.txt", "a")
+            routes_log.write(str(current_route)[1:-1] + "\n")
+            routes_log.close()
 
-    return -1
+            routes_log = open(data_path+"/routes/"+str(dest_node)+"_routes.txt", "a")
+            current_route.reverse()
+            routes_log.write(str(current_route)[1:-1] + "\n")
+            routes_log.close()
+#### Log Ground station - Satellite Table -- That is not used now
+    for index, gs_sat in enumerate(GS_SAT_Table):
+        gs_sat_log = open(data_path+"/GS_SAT_Table.txt", "a")
+        if len(gs_sat) > 0:
+            gs_sat_log.write(str(index)+"\t"+str(gs_sat)[1:-1] + "\n")
 
-def get_gs_ip(list_of_Intf_IPs, gs):
-    for pair in list_of_Intf_IPs:
-        if gs in pair["Interface"]:
-            return pair["IP"]
+        gs_sat_log.close()
+
+    print("..... ALL data is Logged!\n")
+
+def get_time(filename):
+    file = open(filename, 'r')
+    lines = file.readlines()
+    used_time = lines[0]
+
+    year, month, day, hour, minute, newscs = used_time.split(",")
+    ts = load.timescale()
+    t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    print t.tt
+
+    return {"tt": t,
+            "year": year,
+            "month": month,
+            "day": day,
+            "hour": hour,
+            "minutes": minute,
+            "newscs": newscs
+        }
 
 def get_sats_by_index(filename):
     satsFile = open(filename, 'r')
@@ -85,364 +314,736 @@ def get_sats_by_name(filename):
 
     return satellites
 
-def log_info_for_controller(current_time, links, m_intfs, satellites_by_index, satellites_by_name, routes, GS_SAT_Table):
-    time_log = open("./data_gen/current_tle_data/time_log.txt", "w")
-    time_log.write(current_time + "\n")
-
-    links_log = open("./data_gen/current_tle_data/links_log.txt", "w")
-    for link in links:
-        links_log.write(link + "\n")
-    links_log.close()
-
-    m_intf_log = open("./data_gen/current_tle_data/m_intf_log.txt", "w")
-    for intf in m_intfs:
-        m_intf_log.write(intf["node"] + "\t" + intf["mgnt_ip"] + "\n")
-    m_intf_log.close()
-
-    satellitesInd_log = open("./data_gen/current_tle_data/satellites_by_index_log.txt", "w")
-    for sat in satellites_by_index:
-        satellitesInd_log.write(str(sat) + "\n")
-    satellitesInd_log.close()
-
-    satellitesName_log = open("./data_gen/current_tle_data/satellites_by_name_log.txt", "w")
-    for sat in satellites_by_name:
-        satellitesName_log.write(str(sat) + "\n")
-    satellitesName_log.close()
-
-    for route in routes:
-        if len(route[0]) > 2:
-            current_route = route[0][:]
-            src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
-            src_node = "sat"+str(src_node) if src_node < len(satellites_by_index) else "gs"+str(src_node%len(satellites_by_index))
-            dest_node = "sat"+str(dest_node) if dest_node < len(satellites_by_index) else "gs"+str(dest_node%len(satellites_by_index))
-            routes_log = open("./data_gen/current_tle_data/routes/"+str(src_node)+"_routes.txt", "a")
-            routes_log.write(str(current_route)[1:-1] + "\n")
-            routes_log.close()
-
-            routes_log = open("./data_gen/current_tle_data/routes/"+str(dest_node)+"_routes.txt", "a")
-            current_route.reverse()
-            routes_log.write(str(current_route)[1:-1] + "\n")
-            routes_log.close()
-
-    for index, gs_sat in enumerate(GS_SAT_Table):
-        gs_sat_log = open("./data_gen/current_tle_data/GS_SAT_Table.txt", "a")
-        if len(gs_sat) > 0:
-            gs_sat_log.write(str(index)+"\t"+str(gs_sat)[1:-1] + "\n")
-
-        gs_sat_log.close()
-
-    print("..... Logged!\n")
+# def log_info_for_controller(current_time, links, m_intfs, satellites_by_index, satellites_by_name, routes, GS_SAT_Table):
+#     time_log = open("./data_gen/temp/time_log.txt", "w")
+#     #time_log = open("./data_gen/current_tle_data/time_log.txt", "w")
+#     time_log.write(current_time + "\n")
+#
+#     links_log = open("./data_gen/temp/links_log.txt", "w")
+#     # links_log = open("./data_gen/current_tle_data/links_log.txt", "w")
+#     for link in links:
+#         links_log.write(link + "\n")
+#     links_log.close()
+#
+#     m_intf_log = open("./data_gen/temp/m_intf_log.txt", "w")
+#     # m_intf_log = open("./data_gen/current_tle_data/m_intf_log.txt", "w")
+#     for intf in m_intfs:
+#         m_intf_log.write(intf["node"] + "\t" + intf["mgnt_ip"] + "\n")
+#     m_intf_log.close()
+#
+#     satellitesInd_log = open("./data_gen/temp/satellites_by_index_log.txt", "w")
+#     # satellitesInd_log = open("./data_gen/current_tle_data/satellites_by_index_log.txt", "w")
+#     for sat in satellites_by_index:
+#         satellitesInd_log.write(str(sat) + "\n")
+#     satellitesInd_log.close()
+#
+#     satellitesName_log = open("./data_gen/temp/satellites_by_name_log.txt", "w")
+#     # satellitesName_log = open("./data_gen/current_tle_data/satellites_by_name_log.txt", "w")
+#     for sat in satellites_by_name:
+#         satellitesName_log.write(str(sat) + "\n")
+#     satellitesName_log.close()
+#
+#     for route in routes:
+#         if len(route[0]) > 2:
+#             current_route = route[0][:]
+#             src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-2]
+#             src_node = "sat"+str(src_node) if src_node < len(satellites_by_index) else "gs"+str(src_node%len(satellites_by_index))
+#             dest_node = "sat"+str(dest_node) if dest_node < len(satellites_by_index) else "gs"+str(dest_node%len(satellites_by_index))
+#             routes_log = open("./data_gen/temp/routes/"+str(src_node)+"_routes.txt", "a")
+#             # routes_log = open("./data_gen/current_tle_data/routes/"+str(src_node)+"_routes.txt", "a")
+#             routes_log.write(str(current_route)[1:-1] + "\n")
+#             routes_log.close()
+#
+#             routes_log = open("./data_gen/temp/routes/"+str(dest_node)+"_routes.txt", "a")
+#             # routes_log = open("./data_gen/current_tle_data/routes/"+str(dest_node)+"_routes.txt", "a")
+#             current_route.reverse()
+#             routes_log.write(str(current_route)[1:-1] + "\n")
+#             routes_log.close()
+#         elif len(route[0]) == 2:
+#             current_route = route[0][:]
+#             src_node, next_hop_node, dest_node, last_hop_node = current_route[0], current_route[1], current_route[len(current_route)-1], current_route[len(current_route)-1]
+#             src_node = "sat"+str(src_node) if src_node < len(satellites_by_index) else "gs"+str(src_node%len(satellites_by_index))
+#             dest_node = "sat"+str(dest_node) if dest_node < len(satellites_by_index) else "gs"+str(dest_node%len(satellites_by_index))
+#             routes_log = open("./data_gen/temp/routes/"+str(src_node)+"_routes.txt", "a")
+#             # routes_log = open("./data_gen/current_tle_data/routes/"+str(src_node)+"_routes.txt", "a")
+#             routes_log.write(str(current_route)[1:-1] + "\n")
+#             routes_log.close()
+#
+#             routes_log = open("./data_gen/temp/routes/"+str(dest_node)+"_routes.txt", "a")
+#             # routes_log = open("./data_gen/current_tle_data/routes/"+str(dest_node)+"_routes.txt", "a")
+#             current_route.reverse()
+#             routes_log.write(str(current_route)[1:-1] + "\n")
+#             routes_log.close()
+#
+#
+#
+#     for index, gs_sat in enumerate(GS_SAT_Table):
+#         gs_sat_log = open("./data_gen/temp/GS_SAT_Table.txt", "a")
+#         # gs_sat_log = open("./data_gen/current_tle_data/GS_SAT_Table.txt", "a")
+#         if len(gs_sat) > 0:
+#             gs_sat_log.write(str(index)+"\t"+str(gs_sat)[1:-1] + "\n")
+#
+#         gs_sat_log.close()
+#
+#     print("..... Logged!\n")
 
 def main():
-    USE_OLD_ROUTE_FILES = False
-    simulation_time_in_seconds = 60
-    step_in_seconds = 1
+
+################################################################################################################################################
+################################################################################################################################################
+################################################################################################################################################
+
+    FreshRun = False
+    SimulationTime_secs = 20
+    Step_secs = 1
+
+    actual_time = 0
+    loggedTime = ""
+    data_timestamp = "2022,02,24,11,51,57.458358" #"2022,02,21,14,25,48.223" #"2022,03,14,12,15,31.444472" #"2022,03,13,17,47,50.471182" #"2022,03,11,21,36,16.304442" #"2022,02,24,11,51,57.458358"
+    data_path = "../data_gen/archieved_data_"+str(data_timestamp)
 
     N = 3
     number_of_orbits = 72
 
-    if USE_OLD_ROUTE_FILES == False:
-        file_source = 'data_gen/current_tle_data'
-        file_destination = 'data_gen/old_tle_data/'
-
-        if os.path.isfile(file_source+"/time_log.txt"):
-            file = open(file_source+"/time_log.txt", 'r')
-            lines = file.readlines()
-            used_time = lines[0].strip().split(",")
-            file_postfix = ""
-            for tm in used_time:
-                file_postfix += "_"+tm
-
-            old_directory_name = "data"+file_postfix
-            path = os.path.join(file_destination, old_directory_name)
-
-            if os.path.exists(path):
-                shutil.rmtree(path)
-
-            dest = shutil.copytree(file_source, path)
-
-        else:
-            print "No current files ... "
-
-        for f in os.listdir('data_gen/current_tle_data/routes/'):
-            os.remove(os.path.join('data_gen/current_tle_data/routes/', f))
-
-        print "All old routes have been removed ... "
-
-        ground_stations = read_gs("../mobility/ground_stations.txt")
-        satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
-        satellites_by_name = {sat.name: sat for sat in satellites}
-        satellites_by_index = {}
-
-        if os.path.isfile("./data_gen/current_tle_data/starlink.txt"):
-            os.remove("./data_gen/current_tle_data/starlink.txt")
-
-        tle_url = "https://celestrak.com/NORAD/elements/supplemental/starlink.txt"
-        tle_file = wget.download(tle_url, out = "./data_gen/current_tle_data/")
-
-        # orbital_data = get_orbital_planes("./data_gen/starlink.txt",1)
-        # orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
-
-        orbital_data = get_orbital_planes_classifications("./data_gen/current_tle_data/starlink.txt",1)
-
+    if FreshRun == True:
         ts = load.timescale()
-        t = ts.now()
-        print t.utc_strftime()
+        actual_time = ts.now()
 
-        dt, leap_second = t.utc_datetime_and_leap_second()
+        dt, leap_second = actual_time.utc_datetime_and_leap_second()
         newscs = ((str(dt).split(" ")[1]).split(":")[2]).split("+")[0]
-        date, timeN, zone = t.utc_strftime().split(" ")
+        date, timeN, zone = actual_time.utc_strftime().split(" ")
         year, month, day = date.split("-")
         hour, minute, second = timeN.split(":")
         loggedTime = str(year)+","+str(month)+","+str(day)+","+str(hour)+","+str(minute)+","+str(newscs)
-        t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
-        print t2.tt
-    ######
-    elif USE_OLD_ROUTE_FILES == True:
+        if DEBUG == 1:
+            print " The Actual real time for the simulation is ", loggedTime
+
+        data_path = "../data_gen/archieved_data_"+str(loggedTime)
+        os.mkdir(data_path)
+
+        tle_url = "https://celestrak.com/NORAD/elements/supplemental/starlink.txt"
+        tle_file = wget.download(tle_url, out = data_path)
         ground_stations = read_gs("../mobility/ground_stations.txt")
+        gs_Alan = {
+            "gid": 0,
+            "name": "Alan-Starlink",
+            "latitude_degrees_str": "51.52132683544218",
+            "longitude_degrees_str": "-1.7868832746954848",
+            "elevation_m_float": 0.0,
+            "cartesian_x": float(3974857.483),
+            "cartesian_y": float(-124004.072),
+            "cartesian_z": float(4969839.203),
+        }
+
+        gw_starlink = {
+            "gid": 1,
+            "name": "Starlink-GW-UK",
+            "latitude_degrees_str": "51.614537",
+            "longitude_degrees_str": "-0.574484",
+            "elevation_m_float": 0.0,
+            "cartesian_x": float(3968468.136),
+            "cartesian_y": float(-39791.724),
+            "cartesian_z": float(4976285.352),
+        }
+
+        # ground_stations = [gs_Alan, gw_starlink]
         satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
-        satellites_by_name_from_file = get_sats_by_name("./data_gen/current_tle_data/satellites_by_name_log.txt")
 
+        satellites_by_name = {sat.name: sat for sat in satellites}
+        satellites_by_index = {}
+
+        orbital_data = get_orbital_planes_classifications(data_path+"/starlink.txt",1)
+
+    elif FreshRun == False:
+        ground_stations = read_gs("../mobility/ground_stations.txt")
+        gs_Alan = {
+            "gid": 0,
+            "name": "Alan-Starlink",
+            "latitude_degrees_str": "51.52132683544218",
+            "longitude_degrees_str": "-1.7868832746954848",
+            "elevation_m_float": 0.0,
+            "cartesian_x": float(3974857.483),
+            "cartesian_y": float(-124004.072),
+            "cartesian_z": float(4969839.203),
+        }
+
+        gw_starlink = {
+            "gid": 1,
+            "name": "Starlink-GW-UK",
+            "latitude_degrees_str": "51.614537",
+            "longitude_degrees_str": "-0.574484",
+            "elevation_m_float": 0.0,
+            "cartesian_x": float(3968468.136),
+            "cartesian_y": float(-39791.724),
+            "cartesian_z": float(4976285.352),
+        }
+
+        # ground_stations = [gs_Alan, gw_starlink]
+        satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+
+        satellites_by_name_from_file = get_sats_by_name(data_path+"/satellites_by_name_log.txt")
         satellites_by_name = {sat.name: sat for sat in satellites if sat.name in satellites_by_name_from_file}
-        satellites_by_index = get_sats_by_index("./data_gen/current_tle_data/satellites_by_index_log.txt")
+        satellites_by_index = {}
 
-        orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
+        orbital_data = get_orbital_planes_classifications(data_path+"/starlink.txt",1)
 
-        file = open("./data_gen/current_tle_data/time_log.txt", 'r')
-        lines = file.readlines()
-        used_time = lines[0]
+        actual_time = get_time(data_path+"/time_log.txt")
+        if DEBUG == 1:
+            print " The Actual real time for the simulation is ", actual_time["tt"].utc_strftime()
 
-        year, month, day, hour, minute, newscs = used_time.split(",")
-        ts = load.timescale()
-        t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
-        print t.tt
-
-    satellites_sorted_in_orbits = []        #carry satellites names according to STARLINK naming conversion
+# [[Orbital Data]] Sort the satellites in the orbit. We need that in order to know the adjacent satellites
+# in the same orbit.
+    satellites_sorted_in_orbits = []        #carry satellites names according to STARLINK naming conversion (list of lists)
     for i in range(number_of_orbits):
         satellites_in_orbit = []
         cn = 0
         for data in orbital_data:
             if i == int(orbital_data[str(data)][2]):
                 satellites_in_orbit.append(satellites_by_name[str(data)])
-                print i, data, orbital_data[str(data)]
+                if DEBUG == 1:
+                    print i, data, orbital_data[str(data)]
                 cn +=1
-        print i, cn
+        if DEBUG == 1:
+            print "Orbit no.", i, "num of satellites ", cn
 
-        satellites_sorted_in_orbits.append(sort_satellites_in_orbit(satellites_in_orbit, t))
+        if FreshRun == False:
+            satellites_sorted_in_orbits.append(sort_satellites_in_orbit(satellites_in_orbit, actual_time["tt"]))
+        elif FreshRun == True:
+            satellites_sorted_in_orbits.append(sort_satellites_in_orbit(satellites_in_orbit, actual_time))
 
+# Update the satellite_by_index
     sat_index = -1
     for orbit in satellites_sorted_in_orbits:
         for i in range(len(orbit)):
             sat_index += 1
             satellites_by_index[sat_index] = orbit[i].name
-            # print sat_index, satellites_by_index[sat_index]
-
+####
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
+    if DEBUG == 1:
+        print "total number of satellites = ", num_of_satellites
+        print "total number of ground_stations = ", num_of_ground_stations
+
+# [[Build Topology and Links]] Build the network topology, specifically, the Inter-Satellites-Links (mininet_add_ISLs) and GroundStation-Satellites-Links (mininet_add_GSLs)
+# Compute links charateristics in terms of latency, bandwidth and snr
     GS_SAT_Table = [[] for i in range(num_of_satellites)]
-
-    print num_of_satellites, num_of_ground_stations
-
     conn_mat_size = num_of_satellites + num_of_ground_stations
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
-    connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
-    connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t, 1, GS_SAT_Table)
+    if FreshRun == False:
+        connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", actual_time["tt"])
+        connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", actual_time["tt"], 1, GS_SAT_Table)
+    elif FreshRun == True:
+        connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", actual_time)
+        connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", actual_time, 1, GS_SAT_Table)
 
-    link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
+    gs_statellite_pair = get_gs_sat_pairs(connectivity_matrix, num_of_satellites)
+    # print gs_statellite_pair
+    # exit()
+    if FreshRun == False:
+        links_charateristics = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, actual_time["tt"])
+    elif FreshRun == True:
+        links_charateristics = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, actual_time)
 
     available_ips = generate_ips_for_constellation()
-
-    last_CMatrix = connectivity_matrix[:]
-    last_GS_SAT_Table = GS_SAT_Table[:]
-
-    if USE_OLD_ROUTE_FILES == False:
-        start = round(time.time()*1000)
-        initial_routes = initial_routing_v2(satellites_by_index, ground_stations, connectivity_matrix, link_chara["latency_matrix"])
-        end = round(time.time()*1000)
-        print "Initial routing took ", end-start, "ms ", "for ", len(initial_routes), " routes"
-
-    # for route in initial_routes:
-    #     print route
-    start = round(time.time()*1000)
-
-    copy_initial_routes = initial_routes[:]
-    constellation_routes = {k: [] for k in range(num_of_satellites)}
-    for route in copy_initial_routes:
-        current_route = route[0]
-        i = current_route[0]
-        constellation_routes[i].append(route)
-
-    # for i in range(num_of_satellites):
-    #     for route in copy_initial_routes:
-    #         current_route = route[0]
-    #         if "sat"+str(i) == "sat"+str():
-    #             if route not in constellation_routes[i]:
-    #                 constellation_routes[i].append(route)
-
-    end = round(time.time()*1000)
-    print "------ constellation_routes ", end-start, "ms "
-
-    # route_to_sat_GW = find_route_between_src_dest(51, 50, constellation_routes)
-    # print route_to_sat_GW
-    #
-    # for key, values in itertools.izip(constellation_routes.keys(), constellation_routes.values()):
-    #     for value in values:
-    #         print key, value
-    # for i in range(num_of_satellites):
-    #     route_to_sat_GW = find_route_between_src_dest(0, i, constellation_routes)
-    #     print route_to_sat_GW
-    #
-    # exit()
-    # start = round(time.time()*1000)
-    # initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
-    #
-    # end = round(time.time()*1000)
-    # print "Initial routing took ", end-start, "ms"
-
-
+    if DEBUG == 1:
+        print "..... Finished the Build Topology part"
+####
+# [[Routing and Mininet]] Compute the all the routes to all nodes in the topology. We need these routes before we go into mininet to do initial routing table configuration
+# for all nodes in Mininet. We then pass these info to Mininet to create the topology there
+    TopologyRoutes = get_topology_routes(FreshRun, data_path, num_of_satellites, satellites_by_index, ground_stations, connectivity_matrix, links_charateristics)
+    # print len(TopologyRoutes["All_PreConfigured_routes"])
     topology = sat_network(N=N)
-    topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=link_chara["throughput_matrix"], link_latency=link_chara["latency_matrix"])
-    if USE_OLD_ROUTE_FILES == False:
-        log_info_for_controller(loggedTime, topg["isl_gls_links"], topg["management_interface"], satellites_by_index, satellites_by_name, initial_routes, GS_SAT_Table);
+    updates_files_name = ["2022-02-24 11:51:59 UTC_.txt", "2022-02-24 11:52:00 UTC_.txt", "2022-02-24 11:52:01 UTC_.txt", "2022-02-24 11:52:02 UTC_.txt"]
 
+    topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=links_charateristics["throughput_matrix"], link_latency=links_charateristics["latency_matrix"])
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
+    #topology.updateRoutingTables_timer(Step_secs, data_path, net, updates_files_name, num_of_satellites, 0)
     net.start()
-    list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(net, available_ips)
+    list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(data_path, net, available_ips)
+    if FreshRun == True:
+        dump_ALL(data_path, loggedTime, topg["isl_gls_links"], topg["management_interface"], satellites_by_index, satellites_by_name, TopologyRoutes["All_PreConfigured_routes"], GS_SAT_Table)
 
-    old_secs = newscs
-    ts = load.timescale()
-    addthis = 0;
+    prepare_routing_config_commands(topology, data_path, TopologyRoutes["All_PreConfigured_routes"], topg, list_of_Intf_IPs, satellites_by_index, 20);
+    start = round(time.time()*1000)
+    gs_routing(data_path, gs_statellite_pair, topg["isl_gls_links"], num_of_satellites, satellites_by_index, list_of_Intf_IPs, TopologyRoutes["Routes_per_satellites"])
+    end = round(time.time()*1000)
+    if DEBUG == 1:
+        print " GS Routing took ", end-start, "ms "
+    # exit()
+    start = round(time.time()*1000)
+    topology.startRoutingConfigV2(data_path,net, satellites_by_index, ground_stations, topg["management_interface"])
+    end = round(time.time()*1000)
+    if DEBUG == 1:
+        print " Deploy the IP Route commands for whole constellation took ", end-start, "ms "
+####
+    # CLI(net)
+    # net.stop()
+    # dump_ALL(data_path, loggedTime, topg["isl_gls_links"], topg["management_interface"], satellites_by_index, satellites_by_name, TopologyRoutes["All_PreConfigured_routes"], GS_SAT_Table)
+    #exit()
+####
+
+    # thread_performance = threading.Thread(target=ping_thread, args=(net,))
+    # thread_performance.start()
+    # #
+    # updates_files_name = []
+    # for fileLog in os.listdir(data_path):
+    #     if fileLog.startswith("allchanges_log"):
+    #         a = re.split('_| ',fileLog)
+    #         filesd = a[2]+" "+a[3]+" "+a[4]
+    #         updates_files_name.append(filesd)
     #
-    # start = round(time.time()*1000)
-    # constellation_routes = {k: [] for k in range(num_of_satellites)}
-    # for i in range(num_of_satellites):
-    #     for route in initial_routes:
-    #         current_route = route[0]
-    #         if "sat"+str(i) == "sat"+str(current_route[0]):
-    #             if route not in constellation_routes[i]:
-    #                 constellation_routes[i].append(route)
+    # updates_files_name.sort()
     #
-    # for key, values in itertools.izip(constellation_routes.keys(), constellation_routes.values()):
-    #     for value in values:
-    #         print key, value
+    # # # updates_files_name = ['2022-02-24 11:51:59 UTC', '2022-02-24 11:52:00 UTC', '2022-02-24 11:52:01 UTC', '2022-02-24 11:52:02 UTC',
+    # # #                     '2022-02-24 11:52:03 UTC', '2022-02-24 11:52:04 UTC', '2022-02-24 11:52:05 UTC', '2022-02-24 11:52:06 UTC',
+    # # #                     '2022-02-24 11:52:07 UTC', '2022-02-24 11:52:00 UTC', '2022-02-24 11:52:09 UTC', '2022-02-24 11:52:10 UTC',
+    # # #                     '2022-02-24 11:52:11 UTC', '2022-02-24 11:52:12 UTC', '2022-02-24 11:52:13 UTC', '2022-02-24 11:52:14 UTC',
+    # #                     '2022-02-24 11:52:15 UTC', '2022-02-24 11:52:16 UTC', '2022-02-24 11:52:17 UTC']
+    #
+    # startmain = round(time.time() * 1000)
+    # time_counter = 0
+    # for file in updates_files_name:
+    #     if time_counter > SimulationTime_secs:
+    #         endmain = round(time.time() * 1000)
+    #         print "overalll ---> ", endmain-startmain
+    #         exit()
+    #     st = round(time.time() * 1000)
+    #     print "[ %0.12f" % round(time.time() * 1000),"] Start --> ", file
+    #     net = update_loop(data_path, net, file, num_of_satellites);
+    #     print "[ %0.12f" % round(time.time() * 1000),"] End   --> ", file
+    #     time_counter += 1
+    #     # time.sleep(1)
+    # # time.sleep(30)
+    # exit()
+####
+
+####
+# [[Iterative Simulation]] Now we compute the changes in the topology ever Step_secs and store that.
+#
+
+    # AllRoutesParameters = {(k,k): () for k in range(len(TopologyRoutes["All_PreConfigured_routes"]))}
+    # thread_list = []
+    # start1 = round(time.time()*1000)
+    # num_t = 20;
+    # sublist_len = len(TopologyRoutes["All_PreConfigured_routes"])/num_t
+    # for i in range(0, len(TopologyRoutes["All_PreConfigured_routes"]), sublist_len):
+    #     subroutes = TopologyRoutes["All_PreConfigured_routes"][i:i+sublist_len]
+    #     thread = threading.Thread(target=read_staticParameters, args=(subroutes, topg["isl_gls_links"], list_of_Intf_IPs, satellites_by_index, AllRoutesParameters))
+    #     thread_list.append(thread)
+    #
+    # for thread in thread_list:
+    #     thread.start()
+    # for thread in thread_list:
+    #     thread.join()
     #
     # end = round(time.time()*1000)
-    # print "------ constellation_routes ", end-start, "ms "
+    #
+    # print " AllRoutesParameters took ", end-start1, "ms "
+    # updates_files_name = ["2022-02-24 11:51:59 UTC_.txt"]
+    # start = round(time.time()*1000)
+    # topology.updateRoutingTables(data_path, net, updates_files_name, 0, num_of_satellites)
+    # end = round(time.time()*1000)
+    # if DEBUG == 1:
+    #     print " Deploy the IP Route commands for whole constellation took ", end-start, "ms "
+    # # topology.updateRoutingTables_timer(Step_secs, data_path, net, updates_files_name, num_of_satellites, 0)
+    # CLI(net)
+    # net.stop()
 
+    addthis = 0
     links_updated = topg["isl_gls_links"][:]
+    last_CMatrix = []
+    updates_files_name = []
+    while SimulationTime_secs > 0:
+        start1 = round(time.time()*1000)
+        SimulationTime_secs -= Step_secs
+        addthis += Step_secs
 
-    while simulation_time_in_seconds > 0:
-        simulation_time_in_seconds -= step_in_seconds
-        addthis += step_in_seconds
-        t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs)+addthis)
-        print t2.utc_strftime()
-
+        ts = load.timescale()
+        actual_time_increment = ts.utc(int(actual_time["year"]), int(actual_time["month"]), int(actual_time["day"]), int(actual_time["hour"]), int(actual_time["minutes"]), float(actual_time["newscs"])+addthis)
+        print actual_time_increment.utc_strftime()
 
         new_GS_SAT_Table = [[] for i in range(num_of_satellites)]
         new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
 
-        new_CMatrix = mininet_add_ISLs(new_CMatrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t2)
-        new_CMatrix = mininet_add_GSLs(new_CMatrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t2, 1, new_GS_SAT_Table)
+        start = round(time.time()*1000)
+        new_CMatrix = mininet_add_ISLs(new_CMatrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", actual_time_increment)
+        new_CMatrix = mininet_add_GSLs(new_CMatrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", actual_time_increment, 1, new_GS_SAT_Table)
+        end = round(time.time()*1000)
 
-        # for index, vals in enumerate(new_GS_SAT_Table):
-        #     if len(vals) > 0:
-        #         print index, vals
+        print " Re calculate the ISL and GSL links took ", end-start, "ms "
 
-        route_changes = check_changes_in_routes(last_CMatrix, new_CMatrix)
+        if len(last_CMatrix) > 0:
+            route_changes = check_changes_in_routes(last_CMatrix, new_CMatrix)
 
-        print len(route_changes)
-
-        gsl_ch = 0
-        isl_ch = 0
-        update_gsl_routing_cmd = []
-        if len(route_changes) < 1000:
-            for change in route_changes:
-                start = round(time.time()*1000)
-                print change
-                if change[0] < num_of_satellites and change[1] >= num_of_satellites:
-                    gs_number = int(change[1])%num_of_satellites
-                    gs_ip = get_gs_ip(list_of_Intf_IPs, "gs"+str(gs_number)+"-eth1").split("/")[0]
-                    gs_network_address = get_network_address(gs_ip)
-
-                    for i in range(num_of_satellites):
-                        route_to_sat_GW = find_route_between_src_dest(i, change[0], constellation_routes)
-                        if route_to_sat_GW != -1:
-                            parameters = get_static_route_parameter([route_to_sat_GW], links_updated, list_of_Intf_IPs, satellites_by_index);
-                            if len(parameters) > 0:
-                                if change[2] == 0 and change[3] == 1:
-                                    update_gsl_routing_cmd.append("ip route add "+str(gs_network_address)+" via "+str(parameters[2])+" dev "+str(parameters[3]))
-                                elif change[2] == 1 and change[3] == 0:
-                                    update_gsl_routing_cmd.append("ip route del "+str(gs_network_address)+" via "+str(parameters[2])+" dev "+str(parameters[3]))
-                        else:
-                            print "Error: cannot find the route between sat", i, " and sat", change[0]
-                            # exit()
-                    gsl_ch += 1
-
-            # changes in the ISL links
-                elif change[0] < num_of_satellites and change[1] < num_of_satellites:
-                    isl_ch += 1
-
-                end = round(time.time()*1000)
-                print "one iteration of change --- ", end-start, "ms "
-                
-            if len(update_gsl_routing_cmd) > 0:
-                start = round(time.time()*1000)
-                updates_log = open("./data_gen/current_tle_data/routing_updates_"+str(t2.utc_strftime())+"_.txt", "w")
-                for update in update_gsl_routing_cmd:
-                    updates_log.write(str(update) + "\n")
-
-                end = round(time.time()*1000)
-                print "writing to file ", end-start, "ms "
-
-                updates_log.close()
-
-            print gsl_ch, isl_ch
-
+            print " at ", actual_time_increment.utc_strftime(), "there are ", len(route_changes), " route changes"
+            updates_files_name.append(str(actual_time_increment.utc_strftime())+"_.txt")
+            if len(route_changes) < 400:
+                lightweight_routing(data_path, route_changes, links_updated, num_of_satellites, satellites_by_index, list_of_Intf_IPs, TopologyRoutes["Routes_per_satellites"], actual_time_increment)
+                # we need to update links_updated
         last_CMatrix = new_CMatrix[:]
-
-    # cmds_list = []
-    # routesfile = open("routes_file.txt", "w")
-    # start = round(time.time()*1000)
-    # for route in initial_routes:
-    #     routesfile.write(str(route) + "\n")
-    #     topology.configure_initial_static_route(net, route[0], num_of_satellites, num_of_ground_stations, cmds_list)
-    #
-    # routesfile.close()
-    # end = round(time.time()*1000)
-    # print "Configure inital routes took ", end-start, "ms"
-    # print len(connectivity_matrix)
-
-    # for route in initial_routes:
-    #     print route
-    # topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
-    # topology.startworker(net, satellites_by_index, ground_stations, topg["management_interface"])
-    topology.startRoutingConfig(net, satellites_by_index, ground_stations, topg["management_interface"])
-    # I will need to add a function here to read these "updates_log = open("./data_gen/current_tle_data/routing_updates_"+str(t2.utc_strftime())+"_.txt", "w")" files and update the routing info.
-    CLI( net)
-    # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
-    # UDPSocket.bind(("", 20001))
-    # print "Mininet main listener is created ... "
-    # while(True):
-    #     bytesAddressPair = UDPSocket.recvfrom(1024)
-    #     print bytesAddressPair
-    #     recv_msg = updateTopologyMsg.c_m_update_topology()
-    #     recv_msg.ParseFromString(bytesAddressPair[0])
-    #     print recv_msg.command, recv_msg.node1_name, recv_msg.node2_name
-    #
-    #     if recv_msg.command == "deleteLink":
-    #         net_node1 = net.getNodeByName(recv_msg.node1_name)
-    #         net_node2 = net.getNodeByName(recv_msg.node2_name)
-    #         if net.linksBetween(net_node1, net_node2):
-    #             net.delLinkBetween(net_node1, net_node2)
-    #
-    #     if recv_msg.command == "addLink":
-    #         net_node1 = net.getNodeByName(recv_msg.node1_name)
-    #         net_node2 = net.getNodeByName(recv_msg.node2_name)
-    #         net_node1.cmd("ifconfig")
-    #         net_node2.cmd("ifconfig")
-    #         net.addLink(net_node1, net_node2, cls=TCLink)
-
+        end1 = round(time.time()*1000)
+        print " Route update iteration took  ", (end1-start1), "ms "
+    CLI(net)
     net.stop()
+    # exit()
+####
+################################################################################################################################################
+################################################################################################################################################
+################################################################################################################################################
+    #
+    # if FreshRun == 10 or FreshRun == 20:
+    #     ground_stations = read_gs("../mobility/ground_stations.txt")
+    #     satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+    #     satellites_by_name = {sat.name: sat for sat in satellites}
+    #     satellites_by_index = {}
+    #
+    #     orbital_data = get_orbital_planes_classifications("./data_gen/temp/starlink.txt",1)
+    #
+    #     ts = load.timescale()
+    #     t = ts.now()
+    #     # print t.utc_strftime()
+    #
+    #     dt, leap_second = t.utc_datetime_and_leap_second()
+    #     newscs = ((str(dt).split(" ")[1]).split(":")[2]).split("+")[0]
+    #     date, timeN, zone = t.utc_strftime().split(" ")
+    #     year, month, day = date.split("-")
+    #     hour, minute, second = timeN.split(":")
+    #     loggedTime = str(year)+","+str(month)+","+str(day)+","+str(hour)+","+str(minute)+","+str(newscs)
+    #     t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    #     # print t2.tt
+    #
+    #     if FreshRun == 20:
+    #         t = get_time("./data_gen/temp/time_log.txt")
+    #
+    #
+    # if FreshRun == False:
+    #     file_source = 'data_gen/current_tle_data'
+    #     file_destination = 'data_gen/old_tle_data/'
+    #
+    #     if os.path.isfile(file_source+"/time_log.txt"):
+    #         file = open(file_source+"/time_log.txt", 'r')
+    #         lines = file.readlines()
+    #         used_time = lines[0].strip().split(",")
+    #         file_postfix = ""
+    #         for tm in used_time:
+    #             file_postfix += "_"+tm
+    #
+    #         old_directory_name = "data"+file_postfix
+    #         path = os.path.join(file_destination, old_directory_name)
+    #
+    #         if os.path.exists(path):
+    #             shutil.rmtree(path)
+    #
+    #         dest = shutil.copytree(file_source, path)
+    #
+    #     else:
+    #         print "No current files ... "
+    #
+    #     for f in os.listdir('data_gen/current_tle_data/routes/'):
+    #         os.remove(os.path.join('data_gen/current_tle_data/routes/', f))
+    #
+    #     print "All old routes have been removed ... "
+    #
+    #     ground_stations = read_gs("../mobility/ground_stations.txt")
+    #     satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+    #     satellites_by_name = {sat.name: sat for sat in satellites}
+    #     satellites_by_index = {}
+    #
+    #     if os.path.isfile("./data_gen/current_tle_data/starlink.txt"):
+    #         os.remove("./data_gen/current_tle_data/starlink.txt")
+    #
+    #     tle_url = "https://celestrak.com/NORAD/elements/supplemental/starlink.txt"
+    #     tle_file = wget.download(tle_url, out = "./data_gen/current_tle_data/")
+    #
+    #     # orbital_data = get_orbital_planes("./data_gen/starlink.txt",1)
+    #     # orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
+    #
+    #     orbital_data = get_orbital_planes_classifications("./data_gen/current_tle_data/starlink.txt",1)
+    #
+    #     ts = load.timescale()
+    #     t = ts.now()
+    #     # print t.utc_strftime()
+    #
+    #     dt, leap_second = t.utc_datetime_and_leap_second()
+    #     newscs = ((str(dt).split(" ")[1]).split(":")[2]).split("+")[0]
+    #     date, timeN, zone = t.utc_strftime().split(" ")
+    #     year, month, day = date.split("-")
+    #     hour, minute, second = timeN.split(":")
+    #     loggedTime = str(year)+","+str(month)+","+str(day)+","+str(hour)+","+str(minute)+","+str(newscs)
+    #     t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    #     # print t2.tt
+    # ######
+    # elif FreshRun == True:
+    #     ground_stations = read_gs("../mobility/ground_stations.txt")
+    #     satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+    #     satellites_by_name_from_file = get_sats_by_name("./data_gen/current_tle_data/satellites_by_name_log.txt")
+    #
+    #     satellites_by_name = {sat.name: sat for sat in satellites if sat.name in satellites_by_name_from_file}
+    #     satellites_by_index = get_sats_by_index("./data_gen/current_tle_data/satellites_by_index_log.txt")
+    #
+    #     # orbital_data = get_orbital_planes_ML("./data_gen/current_tle_data/starlink.txt",1)
+    #     orbital_data = get_orbital_planes_classifications("./data_gen/current_tle_data/starlink.txt",1)
+    #
+    #     file = open("./data_gen/current_tle_data/time_log.txt", 'r')
+    #     lines = file.readlines()
+    #     used_time = lines[0]
+    #
+    #     year, month, day, hour, minute, newscs = used_time.split(",")
+    #     ts = load.timescale()
+    #     t = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs))
+    #     # print t.tt
+    #
+    # satellites_sorted_in_orbits = []        #carry satellites names according to STARLINK naming conversion
+    # for i in range(number_of_orbits):
+    #     satellites_in_orbit = []
+    #     cn = 0
+    #     for data in orbital_data:
+    #         if i == int(orbital_data[str(data)][2]):
+    #             satellites_in_orbit.append(satellites_by_name[str(data)])
+    #             print i, data, orbital_data[str(data)]
+    #             cn +=1
+    #     print "Orbit no.", i, "num of satellites ", cn
+    #
+    #     satellites_sorted_in_orbits.append(sort_satellites_in_orbit(satellites_in_orbit, t))
+    #
+    # sat_index = -1
+    # for orbit in satellites_sorted_in_orbits:
+    #     for i in range(len(orbit)):
+    #         sat_index += 1
+    #         satellites_by_index[sat_index] = orbit[i].name
+    #         # print sat_index, satellites_by_index[sat_index]
+    #
+    # num_of_satellites = len(orbital_data)
+    # num_of_ground_stations = len(ground_stations)
+    # GS_SAT_Table = [[] for i in range(num_of_satellites)]
+    #
+    # print "total number of satellites = ", num_of_satellites
+    # print "total number of ground_stations = ", num_of_ground_stations
+    #
+    #
+    # print t
+    # print t.utc_strftime()
+    # dt, leap_second = t.utc_datetime_and_leap_second()
+    # print dt
+    # conn_mat_size = num_of_satellites + num_of_ground_stations
+    # connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
+    # connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t)
+    # connectivity_matrix = mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t, 1, GS_SAT_Table)
+    #
+    # link_chara = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t)
+    #
+    # available_ips = generate_ips_for_constellation()
+    #
+    # last_CMatrix = connectivity_matrix[:]
+    # last_GS_SAT_Table = GS_SAT_Table[:]
+    #
+    # if FreshRun == False:
+    #     start = round(time.time()*1000)
+    #     initial_routes = initial_routing_v2(satellites_by_index, ground_stations, connectivity_matrix, link_chara["latency_matrix"])
+    #     end = round(time.time()*1000)
+    #     print "Initial routing took ", end-start, "ms ", "for ", len(initial_routes), " routes"
+    #
+    # if FreshRun == 10:
+    #     start = round(time.time()*1000)
+    #     initial_routes = initial_routing_v2(satellites_by_index, ground_stations, connectivity_matrix, link_chara["latency_matrix"])
+    #     end = round(time.time()*1000)
+    #     print "Initial routing took ", end-start, "ms ", "for ", len(initial_routes), " routes"
+    #
+    # if FreshRun == 20:
+    #     constellation_routes = {m: [] for m in range(num_of_satellites)}
+    #     initial_routes = []
+    #     for k in range(num_of_satellites):
+    #         route_file = open("./data_gen/temp/routes/sat"+str(k)+"_routes.txt", 'r')
+    #         routes = route_file.readlines()
+    #
+    #         start = round(time.time()*1000)
+    #         for route in routes:
+    #             route_new = []
+    #             route_list = re.split(", | |\n", route)
+    #             route = [int(r) for r in route_list if r.strip()]
+    #             route_new.append(route)
+    #             constellation_routes[k].append(route_new)
+    #             initial_routes.append(route_new)
+    #
+    #
+    # # for route in initial_routes:
+    # #     print route
+    # if FreshRun != 20:
+    #     start = round(time.time()*1000)
+    #
+    #     copy_initial_routes = initial_routes[:]
+    #     constellation_routes = {k: [] for k in range(num_of_satellites)}
+    #     for route in copy_initial_routes:
+    #         current_route = route[0]
+    #         i = current_route[0]
+    #         constellation_routes[i].append(route)
+    #
+    # # for i in range(num_of_satellites):
+    # #     for route in copy_initial_routes:
+    # #         current_route = route[0]
+    # #         if "sat"+str(i) == "sat"+str():
+    # #             if route not in constellation_routes[i]:
+    # #                 constellation_routes[i].append(route)
+    #
+    # end = round(time.time()*1000)
+    # print "------ constellation_routes ", end-start, "ms "
+    #
+    # # route_to_sat_GW = find_route_between_src_dest(51, 50, constellation_routes)
+    # # print route_to_sat_GW
+    # #
+    # # for key, values in itertools.izip(constellation_routes.keys(), constellation_routes.values()):
+    # #     for value in values:
+    # #         print key, value
+    # # for i in range(num_of_satellites):
+    # #     route_to_sat_GW = find_route_between_src_dest(0, i, constellation_routes)
+    # #     print route_to_sat_GW
+    # #
+    # # exit()
+    # # start = round(time.time()*1000)
+    # # initial_routes = initial_routing(satellites_by_index, ground_stations, connectivity_matrix)
+    # #
+    # # end = round(time.time()*1000)
+    # # print "Initial routing took ", end-start, "ms"
+    #
+    #
+    # topology = sat_network(N=N)
+    # # topology.create_static_routes_batch(initial_routes, [], [], satellites_by_index)
+    # # topology.create_static_routes_batch_parallel(initial_routes, [], [],  satellites_by_index, 20)
+    # topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=link_chara["throughput_matrix"], link_latency=link_chara["latency_matrix"])
+    # if FreshRun == False or FreshRun == 10:
+    #     log_info_for_controller(loggedTime, topg["isl_gls_links"], topg["management_interface"], satellites_by_index, satellites_by_name, initial_routes, GS_SAT_Table);
+    #
+    # net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
+    # net.start()
+    # list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(net, available_ips)
+    #
+    # start = round(time.time()*1000)
+    # ipRouteCMD = topology.create_static_routes_batch_parallel(initial_routes, topg["isl_gls_links"], list_of_Intf_IPs, satellites_by_index, 20)
+    # logg = open('stat_r.sh', 'w')
+    # for c in ipRouteCMD:
+    #     logg.write(c)
+    # logg.close()
+    # end = round(time.time()*1000)
+    # print "------ gen ", end-start, "ms "
+    #
+    # file1 = open('stat_r.sh', 'r')
+    # Lines = file1.readlines()
+    #
+    # for f in os.listdir('./cmd_files'):
+    #     os.remove(os.path.join('./cmd_files', f))
+    #
+    # print "---============"
+    # time.sleep(20)
+    # count = 0
+    # for line in Lines:
+    #     command = line.strip().split(" ")
+    #     file = open("./cmd_files/"+command[0]+"_routes.sh", 'a')
+    #     string_to_write = ""
+    #     for i in range(1,len(command)):
+    #         string_to_write += command[i]+" "
+    #
+    #     file.writelines(string_to_write+"\n")
+    #     file.close()
+    #
+    # ts = load.timescale()
+    # addthis = 0;
+    #
+    # # start = round(time.time()*1000)
+    # # constellation_routes = {k: [] for k in range(num_of_satellites)}
+    # # for i in range(num_of_satellites):
+    # #     for route in initial_routes:
+    # #         current_route = route[0]
+    # #         if "sat"+str(i) == "sat"+str(current_route[0]):
+    # #             if route not in constellation_routes[i]:
+    # #                 constellation_routes[i].append(route)
+    # #
+    # # for key, values in itertools.izip(constellation_routes.keys(), constellation_routes.values()):
+    # #     for value in values:
+    # #         print key, value
+    # #
+    # # end = round(time.time()*1000)
+    # # print "------ constellation_routes ", end-start, "ms "
+    # ###########
+    # links_updated = topg["isl_gls_links"][:]
+    #
+    # while SimulationTime_secs > 0:
+    #     SimulationTime_secs -= Step_secs
+    #     addthis += Step_secs
+    #     t2 = ts.utc(int(year), int(month), int(day), int(hour), int(minute), float(newscs)+addthis)
+    #     print t2.utc_strftime()
+    #
+    #     new_GS_SAT_Table = [[] for i in range(num_of_satellites)]
+    #     new_CMatrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]
+    #
+    #     start = round(time.time()*1000)
+    #     new_CMatrix = mininet_add_ISLs(new_CMatrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", t2)
+    #     new_CMatrix = mininet_add_GSLs(new_CMatrix, satellites_by_name, satellites_by_index, ground_stations, 12, "BASED_ON_DISTANCE_ONLY_MININET", t2, 1, new_GS_SAT_Table)
+    #     end = round(time.time()*1000)
+    #     print "one iteration of recalc ISL/GSL takes --- ", end-start, "ms "
+    #
+    #     route_changes = check_changes_in_routes(last_CMatrix, new_CMatrix)
+    #
+    #     print "at ", t2.utc_strftime(), "there are ", len(route_changes), " route changes"
+    #     if len(route_changes) < 400:
+    #         lightweight_routing(route_changes, links_updated, num_of_satellites, satellites_by_index, list_of_Intf_IPs, constellation_routes, t2)
+    #
+    #     last_CMatrix = new_CMatrix[:]
+    # exit()
+    # #############
+    #
+    # # cmds_list = []
+    # # routesfile = open("routes_file.txt", "w")
+    # # start = round(time.time()*1000)
+    # # for route in initial_routes:
+    # #     routesfile.write(str(route) + "\n")
+    # #     topology.configure_initial_static_route(net, route[0], num_of_satellites, num_of_ground_stations, cmds_list)
+    # #
+    # # routesfile.close()
+    # # end = round(time.time()*1000)
+    # # print "Configure inital routes took ", end-start, "ms"
+    # # print len(connectivity_matrix)
+    #
+    # # for route in initial_routes:
+    # #     print route
+    # # topology.startListener(net, available_satellites_by_name, ground_stations, topg["management_interface"])
+    # # topology.startworker(net, satellites_by_index, ground_stations, topg["management_interface"])
+    # # topology.startRoutingConfig(net, satellites_by_index, ground_stations, topg["management_interface"])
+    # print "------ ge  "
+    # start = round(time.time()*1000)
+    # topology.startRoutingConfigV2(net, satellites_by_index, ground_stations, topg["management_interface"])
+    # end = round(time.time()*1000)
+    # print "------ config ", end-start, "ms "
+    # # I will need to add a function here to read these "updates_log = open("./data_gen/current_tle_data/routing_updates_"+str(t2.utc_strftime())+"_.txt", "w")" files and update the routing info.
+    # # myScript = "stat_r.sh"
+    # # start = round(time.time()*1000)
+    # # CLI(net, script=myScript) # Batch mode script execution
+    # # end = round(time.time()*1000)
+    # # print "------ genss ", end-start, "ms "
+    # CLI(net)
+    # # UDPSocket = socket(family=AF_INET, type=SOCK_DGRAM)
+    # # UDPSocket.bind(("", 20001))
+    # # print "Mininet main listener is created ... "
+    # # while(True):
+    # #     bytesAddressPair = UDPSocket.recvfrom(1024)
+    # #     print bytesAddressPair
+    # #     recv_msg = updateTopologyMsg.c_m_update_topology()
+    # #     recv_msg.ParseFromString(bytesAddressPair[0])
+    # #     print recv_msg.command, recv_msg.node1_name, recv_msg.node2_name
+    # #
+    # #     if recv_msg.command == "deleteLink":
+    # #         net_node1 = net.getNodeByName(recv_msg.node1_name)
+    # #         net_node2 = net.getNodeByName(recv_msg.node2_name)
+    # #         if net.linksBetween(net_node1, net_node2):
+    # #             net.delLinkBetween(net_node1, net_node2)
+    # #
+    # #     if recv_msg.command == "addLink":
+    # #         net_node1 = net.getNodeByName(recv_msg.node1_name)
+    # #         net_node2 = net.getNodeByName(recv_msg.node2_name)
+    # #         net_node1.cmd("ifconfig")
+    # #         net_node2.cmd("ifconfig")
+    # #         net.addLink(net_node1, net_node2, cls=TCLink)
+    #
+    # net.stop()
 
 setLogLevel('info')    # 'info' is normal; 'debug' is for when there are problems
 main()

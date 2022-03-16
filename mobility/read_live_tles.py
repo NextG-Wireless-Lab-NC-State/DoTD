@@ -65,7 +65,7 @@ def get_orbital_planes_classifications(tle_filename, shell_num):
         upperBound_of_class = float(breaks[b])
         lowerBound_of_class = float(breaks[b-1])
         class_num = b-1
-        print "Class -------------------- "+str(class_num)
+        # print "Class -------------------- "+str(class_num)
         count_sats_per_orbit = 0
 
         for i,j in itertools.izip(range(len(dump_orbital_data["Satellites"])), range(len(dump_orbital_data["Longitude of the ascending node"]))):
@@ -78,7 +78,7 @@ def get_orbital_planes_classifications(tle_filename, shell_num):
                 if float(dump_orbital_data["Longitude of the ascending node"][j]) <= upperBound_of_class and float(dump_orbital_data["Longitude of the ascending node"][j]) > lowerBound_of_class:
                     data_orbits[dump_orbital_data["Satellites"][i]] = ("53.0", dump_orbital_data["Longitude of the ascending node"][j], class_num)#Satellite name: (Inclination, Longitude of the ascending node, orbital number)
                     count_sats_per_orbit += 1
-        print "Num of Sats ----------------", count_sats_per_orbit
+        # print "Num of Sats ----------------", count_sats_per_orbit
         totalsatellites += count_sats_per_orbit
 
     print totalsatellites

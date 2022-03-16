@@ -9,11 +9,42 @@ import socket
 import time
 import subprocess
 import threading
+import Queue
 import os
 import math
+from multiprocessing import Process, Manager, Pool
 import sys
 sys.path.append('../comm_protocol')
 import c_m_update_topology_pb2 as updateTopologyMsg
+
+sys.path.append("../routing")
+from routing.constellation_routing import *
+
+net_queue = Queue.Queue()
+cnt_queue = Queue.Queue()
+
+def apply_updates_thread(net, updates):
+    for update in updates:
+        update_routes = update.split(",")       #sat1539,ip route del 10.2.2.112 via 10.2.6.130/28 dev sat1539-eth4
+        sat_node = net.getNodeByName(update_routes[0])
+        sat_node.cmd(update_routes[1].strip()+" &")
+
+def static_routes_batch_worker(args):
+    (
+        routes_chunk,
+        links,
+        list_of_Intf_IPs,
+        satellites_by_index
+    ) = args
+
+
+    commands = ""
+    for route in routes_chunk:
+        parameters = get_static_route_parameter(route, links, list_of_Intf_IPs, satellites_by_index)
+        if len(parameters) > 0:
+            commands += str(parameters[0])+" ip route add "+str(parameters[1])+" via "+str(parameters[2].split("/")[0])+" dev "+str(parameters[3])+" & \n"+str(parameters[4])+" ip route add "+str(parameters[5])+" via "+str(parameters[6].split("/")[0])+" dev "+str(parameters[7])+" & \n"
+
+    return commands
 
 class LinuxRouter( Node ):	# from the Mininet library
     "A Node with IP forwarding enabled."
@@ -171,7 +202,7 @@ class sat_network(Topo):
 
             node_m.cmd(all_cmds_per_node)
 
-    def initial_ipv4_assignment_for_interfaces(self, net, addresses_pool):
+    def initial_ipv4_assignment_for_interfaces(self, data_path, net, addresses_pool):
         list_of_Intf_IPs = []
         nodes = net.hosts
         for node in nodes:
@@ -187,15 +218,16 @@ class sat_network(Topo):
 
                             # Assign the default gw to the ground stations
                             if "gs" in node.name:
-                                debug("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth0", intf2.IP())
-                                node.cmd("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth0");
+                                debug("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth1", intf2.IP())
+                                # print "route add default gw "+str(intf.link.intf1.IP())+" dev "+node.name+"-eth1", intf.link.intf2.IP()
+                                node.cmd("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth1");
                         else:
                             print "[Create Sat Network -- GSL] No Available IPs to assign"
                             exit()
 
             self.rp_disable(node)
 
-        with open('./data_gen/current_tle_data/constellation_ip_assignment.txt', 'w') as f:
+        with open(data_path+'/constellation_ip_assignment.txt', 'w') as f:
             for node in nodes:
                 for intf in node.intfList():
                     if intf.link:
@@ -203,6 +235,16 @@ class sat_network(Topo):
                         f.write(write_toFile)
                         list_of_Intf_IPs.append({"Interface": str(intf.link.intf1), "IP": str(intf.link.intf1.IP())+"/28"})
                         list_of_Intf_IPs.append({"Interface": str(intf.link.intf2), "IP": str(intf.link.intf2.IP())+"/28"})
+
+                        if "gs" in str(intf.link.intf1) and "eth1" in str(intf.link.intf1):
+                            print "route add default gw "+str(intf.link.intf2.IP())+" dev "+str(intf.link.intf1)+"---"+str(intf.link.intf1).split("-")[0]
+                            gsNode = net.getNodeByName(str(intf.link.intf1).split("-")[0])
+                            gsNode.cmd("route add default gw "+str(intf.link.intf2.IP())+" dev "+str(intf.link.intf1));
+
+                        if "gs" in str(intf.link.intf2) and "eth1" in str(intf.link.intf2):
+                            print "route add default gw "+str(intf.link.intf1.IP())+" dev "+str(intf.link.intf2)+"----"+str(intf.link.intf2).split("-")[0]
+                            gsNode = net.getNodeByName(str(intf.link.intf2).split("-")[0])
+                            gsNode.cmd("route add default gw "+str(intf.link.intf1.IP())+" dev "+str(intf.link.intf2));
 
         return list_of_Intf_IPs
 
@@ -267,6 +309,39 @@ class sat_network(Topo):
             print("added .....,"+"sat"+str(i)+" -- "+node_m_ip)
             sat_node.cmd("python ../comm_protocol/satellite_worker.py "+node_m_ip+ " &")
 
+    def create_static_routes_batch_parallel(self, routes, links, list_of_Intf_IPs, satellites_by_index, number_of_cores):
+        step = len(routes)/number_of_cores
+        routes_chunks = [routes[x:x+step] for x in range(0, len(routes), step)]
+
+        static_routing_batch_args = []
+
+        for chunk in routes_chunks:
+            static_routing_batch_args.append((chunk, links, list_of_Intf_IPs, satellites_by_index))
+
+        pool = Pool(number_of_cores)
+        static_routes_b_chunks = pool.map(static_routes_batch_worker, static_routing_batch_args)
+        pool.close()
+        pool.join()
+
+        return static_routes_b_chunks
+
+    def create_static_routes_batch(self, routes, links, list_of_Intf_IPs, satellites_by_index):
+        commands = ""
+        for route in routes:
+            # print route
+            start = round(time.time()*1000)
+            parameters = get_static_route_parameter(route, links, list_of_Intf_IPs, satellites_by_index)
+            # print parameters
+            if len(parameters) > 0:
+                commands += str(parameters[0])+" ip route add "+str(parameters[1])+" via "+str(parameters[2])+" dev "+str(parameters[3])+" & \n"+str(parameters[4])+" ip route add "+str(parameters[5])+" via "+str(parameters[6])+" dev "+str(parameters[7])+" & \n"
+
+            end = round(time.time()*1000)
+            print "------ gen ", end-start, "ms "
+
+        logg = open('linit-9wi.txt', 'a')
+        logg.write(commands)
+        logg.close()
+
     def startRoutingConfig(self, net, satellites, ground_stations, intfs):
         patch_size = 10.0
         intervals = int(math.ceil(len(satellites)/float(patch_size)))
@@ -286,3 +361,100 @@ class sat_network(Topo):
             time.sleep(30)
             for i in range(start, end, 1):
                 sat_node.cmd("pkill -f 'python ../comm_protocol/config_initial_routes.py sat"+str(i)+"'")
+
+    def updateRoutingTables_timer(self, updateTime, data_path, net, updates_files_name, num_of_satellites, stepCnt):
+        while True:
+            print time.ctime(), stepCnt
+            updateThr = threading.Thread(target=self.updateRoutingTables, args=(data_path, net, updates_files_name, stepCnt, num_of_satellites))
+            updateThr.start()
+            time.sleep(updateTime)
+            updateThr.join()
+            net_new = net_queue.get()
+            new_cnt = cnt_queue.get()
+            net = net_new
+            stepCnt = new_cnt
+
+    def updateRoutingTables(self, data_path, net, updates_files_name, stepCnt, num_of_satellites):
+        filename = data_path+"/allchanges_log_"+str(updates_files_name[stepCnt])
+        updatefile = open(filename, 'r')
+        updates = updatefile.readlines()
+
+        if len(updates) < 1:
+            return
+
+        for update in updates:
+            update_links = update.split(",")       #330,1575,0,1
+            # print update_links
+            node1 = "sat"+str(update_links[0]) if int(update_links[0]) < num_of_satellites else "gs"+str(int(update_links[0])%num_of_satellites)
+            node2 = "sat"+str(update_links[1]) if int(update_links[1]) < num_of_satellites else "gs"+str(int(update_links[1])%num_of_satellites)
+            # print node1, node2
+            net_node1 = net.getNodeByName(node1)
+            net_node2 = net.getNodeByName(node2)
+
+            if update_links[2] == 1 and update_links[3].strip() == 0:
+                if net.linksBetween(net_node1, net_node2):
+                    net.delLinkBetween(net_node1, net_node2)
+
+        for update in updates:
+            update_links = update.split(",")       #330,1575,0,1
+            node1 = "sat"+str(update_links[0]) if int(update_links[0]) < num_of_satellites else "gs"+str(int(update_links[0])%num_of_satellites)
+            node2 = "sat"+str(update_links[1]) if int(update_links[1]) < num_of_satellites else "gs"+str(int(update_links[1])%num_of_satellites)
+            net_node1 = net.getNodeByName(node1)
+            net_node2 = net.getNodeByName(node2)
+            # print node1, node2
+            if update_links[2] == 0 and update_links[3].strip() == 1:
+                net.addLink(net_node1, net_node2, cls=TCLink)
+
+
+        start = round(time.time()*1000)
+        filename = data_path+"/routing_updates_"+str(updates_files_name[stepCnt])
+        updatefile = open(filename, 'r')
+        routes_updates = updatefile.readlines()
+        end = round(time.time()*1000)
+        print " Deploy the IP Route commands for whole constellation took -----", end-start, "ms "
+
+        # thread_list = []
+        # start = round(time.time()*1000)
+        # num_thread = 100;
+        # sublist_len = len(routes_updates)/num_thread
+        # for i in range(0, len(routes_updates), sublist_len):
+        #     subroutes = routes_updates[i:i+sublist_len]
+        #     thread = threading.Thread(target=apply_updates_thread, args=(net, subroutes))
+        #     thread_list.append(thread)
+        #
+        # for thread in thread_list:
+        #     thread.start()
+        # for thread in thread_list:
+        #     thread.join()
+        #
+        # end = round(time.time()*1000)
+        # print " Deploy the IP Route commands for whole constellation took ->>>----", end-start, "ms "
+
+        start = round(time.time()*1000)
+        # for update in routes_updates:
+            # update_routes = update.split(",")       #sat1539,ip route del 10.2.2.112 via 10.2.6.130/28 dev sat1539-eth4
+            # print update_routes
+        for i in range(0, num_of_satellites):
+            start = round(time.time()*1000)
+            sat_node = net.getNodeByName("sat"+str(i))
+            sat_node.cmd("./"+data_path+"/temFiles_u/sat"+str(i)+"_routes.sh &")
+            # sat_node.cmd(update_routes[1].strip()+" &")
+
+            end = round(time.time()*1000)
+            print " Deploy the IP Route commands for whole constellation took ->>>----", end-start, "ms "
+
+        stepCnt+=1
+        net_queue.put(net)
+        cnt_queue.put(stepCnt)
+
+    def startRoutingConfigV2(self, data_path, net, satellites, ground_stations, intfs):
+        patch_counter = 10
+        for i in range(0, len(satellites)):
+            sat_node = net.getNodeByName("sat"+str(i))
+            print "-- SATELLITE ", i
+            sat_node.cmd("chmod +x "+data_path+"/cmd_files/sat"+str(i)+"_routes.sh && ./"+data_path+"/cmd_files/sat"+str(i)+"_routes.sh &")
+            patch_counter -= 1
+            if patch_counter == 0:
+                time.sleep(6)
+                patch_counter = 10
+            # sat_node.cmd("python ../comm_protocol/config_gs_sat_table.py "+"sat"+str(i)+" &")

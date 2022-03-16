@@ -219,11 +219,11 @@ def mininet_add_GSLs(connectivity_matrix, satellites_by_name, satellites_by_inde
 
     # Find the best satellite
     if association_criteria == "BASED_ON_DISTANCE_ONLY_MININET":
-        return M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, ground_station_satellites_in_range_temporary, ground_stations, len(satellites_by_index), UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table)
+        return M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, ground_station_satellites_in_range_temporary, ground_stations, len(satellites_by_index), UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table, t)
 
     return -1
 
-def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_satellites_in_range, ground_stations, num_of_satellites, UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table):
+def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_satellites_in_range, ground_stations, num_of_satellites, UPDATE_GS_SAT_TABLE_FLAG, GS_SAT_Table, t):
     gsl_snr = [0 for i in range(len(ground_stations))]
     gsl_latency = [0 for i in range(len(ground_stations))]
     ground_station_satellites_in_range = []
@@ -232,16 +232,31 @@ def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_sa
         if len(inrange_sat[0]) != 0:
             ground_station_satellites_in_range.append(inrange_sat[0][0])
 
+    # # USE CASE 1 -- REMOVE for general run
+    # chosen_sid_forAlan = -1
+    # # ######################################
     for gid in range(len(ground_stations)):
         chosen_sid = -1
         best_distance_m = 1000000000000000
         for (distance_m, sid, gr_id) in ground_station_satellites_in_range:
+            print t.utc_strftime(), distance_m, sid, gr_id
             if gid == gr_id:
+                # if gid != 1: # USE CASE 1 -- REMOVE for general run
                 if distance_m < best_distance_m:
                     chosen_sid = sid
                     best_distance_m = distance_m
-
+                # USE CASE 1 -- REMOVE for general run
+                # if gid == 1:
+                #     if sid == chosen_sid_forAlan:
+                #         chosen_sid = sid
+                #         best_distance_m = distance_m
+                ######################################
         if chosen_sid != -1:
+            # # USE CASE 1 -- REMOVE for general run
+            # if gid == 0:
+            #     chosen_sid_forAlan = chosen_sid
+            # ######################################
+
             connectivity_matrix[chosen_sid][num_of_satellites+gid] = 1
             connectivity_matrix[num_of_satellites+gid][chosen_sid] = 1
             if UPDATE_GS_SAT_TABLE_FLAG:
@@ -249,8 +264,77 @@ def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_sa
             # print "best distance ",gid, chosen_sid, best_distance_m
             gsl_snr[gid] = calc_gsl_snr_given_distance(best_distance_m)
             gsl_latency[gid] = best_distance_m/299792458            #speed of light
+            # print "best distance ",gid, chosen_sid, best_distance_m, gsl_latency[gid]
 
     return connectivity_matrix
+
+# def M_gs_sat_association_criteria_MaxAssoTime(ground_station, satellites, tles, simulation_time, step, bestSatPerInterval):
+#
+# 	"""
+# 	Ground station, Satellite selection criteria function based on maximizing
+# 	the association time.
+#
+# 	The GS will associate with a satellite once it appears in Horizon and will
+# 	remain attached to the same satellites until it disappear (no Line of Sight)
+#
+# 	Param:
+# 	- ground_station: The actual ground station to which the best satellite will be identified
+# 	- satellites: List of all satellites in the constellation
+# 	- Tles: Used to get the epoch in the tles files
+# 	- simulation_time: For how long the best satellite should be estimated (in seconds)
+# 	- step: the frequency of calculating satellites in range (in seconds)
+# 	- bestSatPerInterval: The list of all GS and Best satellites at any time
+# 	"""
+# 	satellites_in_range = []
+# 	satellites_timeAvailability = []
+# 	for i in range(0, simulation_time, step):
+# 		date_str = tles["epoch"] + 0.000000115*i*100		#100*0.000000115 corresponds to one second change
+# 		for sid in range(len(satellites)):
+# 			distance_m = distance_m_ground_station_to_satellite(ground_station, satellites[sid], str(tles["epoch"]), str(date_str))
+# 			if distance_m <= max_gsl_length_m:
+# 				satellites_in_range.append((i, sid, distance_m))
+#
+# 	# Out of all the satellites_in_range, find the longest attached satellite for each time step
+#
+# 	for i in range(len(satellites)):
+# 		min_time = 10000000
+#                 max_time = 0
+#                 distance_AtMinTime = 0
+#                 distance_AtMaxTime = 0
+#                 availabilityCount = 0
+#
+# 		for (time_step, sat, distance, elevation) in satellites_in_range:
+# 			if sat == i:
+#                                 availabilityCount += 1
+#                                 if time_step < min_time:
+#                                         min_time = time_step
+#                                         distance_AtMinTime = distance
+#                                 if time_step > max_time:
+#                                         max_time = time_step
+#                                         distance_AtMaxTime = distance
+#
+#                 satellites_timeAvailability.append((i, min_time, max_time, distance_AtMinTime, distance_AtMaxTime, availabilityCount))
+#
+# 	for i in range (0, simulation_time, step):
+#                 satMaxTime = 0
+#                 appearCnt = 0
+#                 distance_AtMin = 0
+#                 distance_AtMax = 0
+#                 bestSat = 0
+#                 for (sat, min_t, max_t, d_AtMin, d_AtMax, avaCnt) in satellites_timeAvailability:
+#                         if i == min_t:
+#                                 if max_t > satMaxTime and (max_t-min_t)/step == avaCnt-1:
+#                                         satMaxTime = max_t
+#                                         appearCnt = avaCnt
+#                                         distance_AtMin = d_AtMin
+#                                         distance_AtMax = d_AtMax
+#                                         bestSat = sat
+#
+#                 bestSatPerInterval.append((ground_station["gid"], i, bestSat, satMaxTime, appearCnt, distance_AtMin, distance_AtMax))
+# 		print ground_station["gid"], i, bestSat, satMaxTime, appearCnt, distance_AtMin, distance_AtMax
+#
+# 	return bestSatPerInterval
+
 
 def calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, t):
     matrix_size = len(satellites_by_index)+len(ground_stations)
