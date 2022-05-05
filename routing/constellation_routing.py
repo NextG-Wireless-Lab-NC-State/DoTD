@@ -189,7 +189,7 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
                 print cmd_on_dest_node
 
 
-def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
+def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites, intfs_to_physcial):
     parameters = []
     current_route = route[0];
     if len(current_route) > 2:
@@ -208,6 +208,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
 
         for link in links:
             if str(src_node)+str("-") in link and str(next_hop_node)+str("-") in link:
+                #print str(link)
                 intfs = link.split(":")
                 if str(src_node) in intfs[0] and str(next_hop_node) in intfs[1]:
                     src_node_intf = intfs[0]
@@ -217,6 +218,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
                     next_h_node_intf = intfs[0]
 
             if str(dest_node)+str("-") in link and str(last_hop_node)+str("-") in link:
+                #print str(link)
                 intfs = link.split(":")
                 if str(dest_node) in intfs[0] and str(last_hop_node) in intfs[1]:
                     dest_node_intf = intfs[0]
@@ -227,6 +229,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
 
         # print dest_node_intf
         if dest_node_intf != "":
+            #print get_node_intf_ip(dest_node_intf, list_of_Intf_IPs)
             dest_nw_ip = get_network_address(get_node_intf_ip(dest_node_intf, list_of_Intf_IPs).split("/")[0])+"/28"
             next_hop_ip = get_node_intf_ip(next_h_node_intf, list_of_Intf_IPs)
             out_interface = src_node_intf
@@ -235,6 +238,7 @@ def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites):
             exit()
 
         if src_node_intf != "":
+            #print get_node_intf_ip(src_node_intf, list_of_Intf_IPs)
             src_nw_ip = get_network_address(get_node_intf_ip(src_node_intf, list_of_Intf_IPs).split("/")[0])+"/28"
             last_hop_ip = get_node_intf_ip(last_h_node_intf, list_of_Intf_IPs)
             out_interface_2 = dest_node_intf

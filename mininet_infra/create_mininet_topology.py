@@ -76,39 +76,51 @@ class sat_network(Topo):
             print ground_station.IP()
 
 
-    def create_sat_network(self, satellites, ground_stations, connectivity_matrix, link_throughput, link_latency):
+    def create_sat_network(self, satellites, ground_stations, connectivity_matrix, link_throughput, link_latency, Tmode, physical_gs_index, physical_sats_index):
         sat_list = []
         gs_list  = []
         links    = []
         mgnt_intf = []
         cnt_ip = 0
 
-        sat_intf_count = [1 for i in range(len(satellites))]
+        sat_intf_count = [0 for i in range(len(satellites))] #that should be 1s if we are adding management interface, 0s otherwise
         s1 = self.addSwitch('s1')
 
 
-        # create satellites node
+        # create satellites node and management interfaces to Mininet Switch
         for i in range(0, len(satellites)):
             ip_control_intf_oct3 = (i+5)/254
             ip_control_intf_oct4 = (i+5)%254
-            sat_name = self.addHost('sat'+str(i), cls=LinuxRouter, ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
-            self.addLink(sat_name, s1, cls=TCLink)
-            sat_list.append(sat_name)
-            mgnt_intf.append({"node":'sat'+str(i), "mgnt_ip": "172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)})
-            cnt_ip = i
+            if i in physical_sats_index:
+                print "configure the physical satellite ", str(i), " with the following ip addresses ", "172.16.", str(ip_control_intf_oct3),".",str(ip_control_intf_oct4),"/16"
+                sat_name = "sat"+str(i)
+                sat_list.append(sat_name)
 
-            # sat_name = self.addHost('sat'+str(i), cls=LinuxRouter)
-            # sat_list.append(sat_name)
+            if i not in physical_sats_index:
+                sat_name = self.addHost('sat'+str(i), cls=LinuxRouter)
+                # sat_name = self.addHost('sat'+str(i), cls=LinuxRouter, ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
+                #self.addLink(sat_name, s1, cls=TCLink)
+                #mgnt_intf.append({"node":'sat'+str(i), "mgnt_ip": "172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)})
+                sat_list.append(sat_name)
+
+            cnt_ip = i
 
         # create ground-stations node
         for i in range(0, len(ground_stations)):
             ip_control_intf_oct3 = (i+5+len(satellites))/254
             ip_control_intf_oct4 = (i+5+len(satellites))%254
-            # , ip="192.168."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)
-            gs_name = self.addHost('gs'+str(i), ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
-            self.addLink(gs_name, s1, cls=TCLink)
-            mgnt_intf.append({"node":'gs'+str(i), "mgnt_ip": "172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)})
-            gs_list.append(gs_name)
+
+            if i in physical_gs_index:
+                print "configure the physical ground station ", str(i), " with the following ip addresses ", "172.16.", str(ip_control_intf_oct3),".",str(ip_control_intf_oct4),"/16"
+                gs_name = "gs"+str(i)
+                gs_list.append(gs_name)
+
+            if i not in physical_gs_index:
+                gs_name = self.addHost('gs'+str(i))
+                # gs_name = self.addHost('gs'+str(i), ip="172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)+"/16")
+                #self.addLink(gs_name, s1, cls=TCLink)
+                #mgnt_intf.append({"node":'gs'+str(i), "mgnt_ip": "172.16."+str(ip_control_intf_oct3)+"."+str(ip_control_intf_oct4)})
+                gs_list.append(gs_name)
 
             # gs_name = self.addHost('gs'+str(i))
             # gs_list.append(gs_name)
@@ -116,12 +128,20 @@ class sat_network(Topo):
         connectivity_matrix_temp = connectivity_matrix[:]
         for i in range(0,len(connectivity_matrix_temp)):
             for j in range(0, len(connectivity_matrix_temp[i])):
-                # if connectivity_matrix_temp[i][j] == 1:
-                #     print i,j
+
                 # Add the ISL links
                 if i < len(satellites) and j < len(satellites) and connectivity_matrix_temp[i][j] == 1:
-                    self.addLink(sat_list[i], sat_list[j], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'sat'+str(j)+'-eth'+str(sat_intf_count[j]), cls=TCLink, delay=str(link_latency[i][j])+'ms')
-                    links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+'sat'+str(j)+'-eth'+str(sat_intf_count[j]))
+                    if i not in physical_sats_index and j not in physical_sats_index:
+                        self.addLink(sat_list[i], sat_list[j], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'sat'+str(j)+'-eth'+str(sat_intf_count[j]), cls=TCLink, delay=str(link_latency[i][j])+'ms')
+                        links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+'sat'+str(j)+'-eth'+str(sat_intf_count[j]))
+
+                    if i in physical_sats_index and j not in physical_sats_index:
+                        self.addLink(sat_list[j], s1, cls=TCLink, delay=str(link_latency[i][j])+'ms')
+                        print "... Configure the switch to allow the bidirectional traffic between physical satellite "+str(i)+" and the virtual satellite "+str(j)
+
+                    if i not in physical_sats_index and j in physical_sats_index:
+                        self.addLink(sat_list[i], s1, cls=TCLink, delay=str(link_latency[i][j])+'ms')
+                        print "... Configure the switch to allow the bidirectional traffic between physical satellite "+str(j)+" and the virtual satellite "+str(i)
 
                     connectivity_matrix_temp[i][j] = 0
                     connectivity_matrix_temp[j][i] = 0
@@ -129,20 +149,33 @@ class sat_network(Topo):
                     sat_intf_count[i] = sat_intf_count[i] + 1
                     sat_intf_count[j] = sat_intf_count[j] + 1
 
+
                 # Add the GSL links
                 if i < len(satellites) and j >= len(satellites) and connectivity_matrix_temp[i][j] == 1:
                     gid = j - len(satellites)
-                    self.addLink(sat_list[i], gs_list[gid], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'gs'+str(gid)+'-eth1', cls=TCLink, delay=str(link_latency[i][j])+'ms')
-                    links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+ 'gs'+str(gid)+'-eth1')
 
-                    connectivity_matrix_temp[i][j] = 0
-                    connectivity_matrix_temp[j][i] = 0
+                    if i not in physical_sats_index and gid not in physical_gs_index:
+                        self.addLink(sat_list[i], gs_list[gid], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'gs'+str(gid)+'-eth1', cls=TCLink, delay=str(link_latency[i][j])+'ms')
+                        links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+ 'gs'+str(gid)+'-eth1')
 
-                    sat_intf_count[i] = sat_intf_count[i] + 1
+                        connectivity_matrix_temp[i][j] = 0
+                        connectivity_matrix_temp[j][i] = 0
+                        sat_intf_count[i] = sat_intf_count[i] + 1
+
+                    if i not in physical_sats_index and gid in physical_gs_index:
+                        self.addLink(sat_list[i], s1, cls=TCLink, delay=str(link_latency[i][j])+'ms')
+                        print "... Configure the switch to allow the bidirectional traffic between virtual satellite "+str(i)+" and the physical ground station "+str(j)+" or .. ", str(gid)
+
+                        connectivity_matrix_temp[i][j] = 0
+                        connectivity_matrix_temp[j][i] = 0
+                        sat_intf_count[i] = sat_intf_count[i] + 1
+
+                    if i in physical_sats_index and gid in physical_gs_index:
+                        print "... Configure the switch to allow the bidirectional traffic between physcial satellite "+str(i)+" and the physical ground station "+str(j)+" or .. ", str(gid)
 
         return {
-        	"sat_list": sat_list,
-        	"gs_list": gs_list,
+        	"sat_list": sat_list,  #This list has only the virtual satellites not the physical
+        	"gs_list": gs_list,    #This list has only the virtual ground stations not the physical
             "isl_gls_links": links,
             "intf_count_sats": sat_intf_count,
             "management_interface": mgnt_intf
@@ -192,6 +225,23 @@ class sat_network(Topo):
 
         # return cmds_list
 
+    def get_topology_links(self, net):
+        links = []
+        nodes = net.hosts
+        for node in nodes:
+            for intf in node.intfList():
+                current_link = intf.link
+                if current_link:
+                    intf1, intf2        = current_link.intf1, current_link.intf2
+                    intf1_ip, intf2_ip  = current_link.intf1.IP(), current_link.intf2.IP()
+
+                    print "Interface 1: ", str(intf1), "( "+str(intf1_ip)+" )"
+                    print "Interface 2: ", str(intf2), "( "+str(intf2_ip)+" )"
+
+                    link_name = str(intf1)+":"+str(intf2)
+                    links.append(link_name)
+        return links
+
     def run_static_update_commands(self, net, cmds_list, num_of_satellites):
         for i in range(len(cmds_list)):
             node_prefix  = "gs" if i >= num_of_satellites else "sat"
@@ -202,25 +252,42 @@ class sat_network(Topo):
 
             node_m.cmd(all_cmds_per_node)
 
-    def initial_ipv4_assignment_for_interfaces(self, data_path, net, addresses_pool):
+    def initial_ipv4_assignment_for_interfaces(self, data_path, net, addresses_pool, addresses_pool_physical):
         list_of_Intf_IPs = []
         nodes = net.hosts
         for node in nodes:
             for intf in node.intfList():
-                if "eth0" not in intf.name:
-                    if intf.link:
-                        intf1, intf2 = intf.link.intf1, intf.link.intf2
+                # if "eth0" not in intf.name:
+                if intf.link:
+                    intf1, intf2 = intf.link.intf1, intf.link.intf2
+                    if "s1" != str(intf1).split("-")[0] and "s1" != str(intf2).split("-")[0]:
                         network_address = self.get_free_IP(addresses_pool)
                         if network_address != -1:
                             oct1, oct2, oct3, oct4 = network_address.split('.');
                             intf1.setIP(oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+1)+"/28")
                             intf2.setIP(oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+2)+"/28")
-
+                            #print "-- Set IP address for "+str(intf1)+" : "+str(oct1)+"."+str(oct2)+"."+str(oct3)+"."+str(int(oct4)+1)+"/28"
+                            #print "-- Set IP address for "+str(intf2)+" : "+str(oct1)+"."+str(oct2)+"."+str(oct3)+"."+str(int(oct4)+2)+"/28"
                             # Assign the default gw to the ground stations
                             if "gs" in node.name:
                                 debug("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth1", intf2.IP())
                                 # print "route add default gw "+str(intf.link.intf1.IP())+" dev "+node.name+"-eth1", intf.link.intf2.IP()
                                 node.cmd("route add default gw "+str(intf1.IP())+" dev "+node.name+"-eth1");
+                        else:
+                            print "[Create Sat Network -- GSL] No Available IPs to assign"
+                            exit()
+                    if "s1" == str(intf1).split("-")[0] or "s1" == str(intf2).split("-")[0]:
+                        ip_address = self.get_free_IP(addresses_pool_physical)
+                        if ip_address != -1:
+                            if "s1" != str(intf1).split("-")[0]:
+                                oct1, oct2, oct3, oct4 = ip_address.split('.');
+                                intf1.setIP(oct1+"."+oct2+"."+oct3+"."+oct4+"/24")
+                                print "-- Set IP address for "+str(intf1)+" : "+str(oct1)+"."+str(oct2)+"."+str(oct3)+"."+str(oct4)+"/24"
+                            elif "s1" != str(intf2).split("-")[0]:
+                                oct1, oct2, oct3, oct4 = ip_address.split('.');
+                                intf2.setIP(oct1+"."+oct2+"."+oct3+"."+oct4+"/24")
+                                print "-- Set IP address for "+str(intf2)+" : "+str(oct1)+"."+str(oct2)+"."+str(oct3)+"."+str(oct4)+"/24"
+
                         else:
                             print "[Create Sat Network -- GSL] No Available IPs to assign"
                             exit()
@@ -231,20 +298,21 @@ class sat_network(Topo):
             for node in nodes:
                 for intf in node.intfList():
                     if intf.link:
-                        write_toFile = str(intf.link.intf1)+"\t"+str(intf.link.intf1.IP())+"\n"+str(intf.link.intf2)+"\t"+str(intf.link.intf2.IP())+"\n"
+                        intf1, intf2 = intf.link.intf1, intf.link.intf2
+                        write_toFile = str(intf1)+"\t"+str(intf1.IP())+"\n"+str(intf2)+"\t"+str(intf2.IP())+"\n"
                         f.write(write_toFile)
-                        list_of_Intf_IPs.append({"Interface": str(intf.link.intf1), "IP": str(intf.link.intf1.IP())+"/28"})
-                        list_of_Intf_IPs.append({"Interface": str(intf.link.intf2), "IP": str(intf.link.intf2.IP())+"/28"})
+                        list_of_Intf_IPs.append({"Interface": str(intf1), "IP": str(intf1.IP())+"/28"})
+                        list_of_Intf_IPs.append({"Interface": str(intf2), "IP": str(intf2.IP())+"/28"})
 
-                        if "gs" in str(intf.link.intf1) and "eth1" in str(intf.link.intf1):
-                            print "route add default gw "+str(intf.link.intf2.IP())+" dev "+str(intf.link.intf1)+"---"+str(intf.link.intf1).split("-")[0]
-                            gsNode = net.getNodeByName(str(intf.link.intf1).split("-")[0])
-                            gsNode.cmd("route add default gw "+str(intf.link.intf2.IP())+" dev "+str(intf.link.intf1));
+                        if "gs" in str(intf1) and "eth0" in str(intf1):
+                            print "route add default gw "+str(intf2.IP())+" dev "+str(intf1)+"---"+str(intf1).split("-")[0]
+                            gsNode = net.getNodeByName(str(intf1).split("-")[0])
+                            gsNode.cmd("route add default gw "+str(intf2.IP())+" dev "+str(intf1));
 
-                        if "gs" in str(intf.link.intf2) and "eth1" in str(intf.link.intf2):
-                            print "route add default gw "+str(intf.link.intf1.IP())+" dev "+str(intf.link.intf2)+"----"+str(intf.link.intf2).split("-")[0]
-                            gsNode = net.getNodeByName(str(intf.link.intf2).split("-")[0])
-                            gsNode.cmd("route add default gw "+str(intf.link.intf1.IP())+" dev "+str(intf.link.intf2));
+                        if "gs" in str(intf2) and "eth0" in str(intf2):
+                            print "route add default gw "+str(intf1.IP())+" dev "+str(intf2)+"----"+str(intf2).split("-")[0]
+                            gsNode = net.getNodeByName(str(intf2).split("-")[0])
+                            gsNode.cmd("route add default gw "+str(intf1.IP())+" dev "+str(intf2));
 
         return list_of_Intf_IPs
 

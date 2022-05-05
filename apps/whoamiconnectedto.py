@@ -24,7 +24,6 @@ import shutil
 
 import sys
 sys.path.append("../")
-from mobility.read_real_tles import *
 from mobility.read_live_tles import *
 from mobility.mobility_utils import *
 from mobility.read_gs import *
@@ -37,10 +36,10 @@ gs_Alan = {
     "name": "Alan-Starlink",
     "latitude_degrees_str": "51.52132683544218",
     "longitude_degrees_str": "-1.7868832746954848",
-    "elevation_m_float": 0.0,
-    "cartesian_x": float(3974857.483),
-    "cartesian_y": float(-124004.072),
-    "cartesian_z": float(4969839.203),
+    "elevation_m_float": 136.0,
+    "cartesian_x": float(3974942.065),
+    "cartesian_y": float(-124006.711),
+    "cartesian_z": float(4969945.669),
 }
 ground_stations = [gs_Alan]
 
@@ -48,7 +47,7 @@ number_of_orbits = 72
 
 print ground_stations
 
-satellites = load.tle_file("https://celestrak.com/NORAD/elements/starlink.txt")
+satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt") #https://celestrak.com/NORAD/elements/starlink.txt
 satellites_by_name = {sat.name: sat for sat in satellites}
 satellites_by_index = {}
 
@@ -109,7 +108,7 @@ while 1:
     ts = load.timescale()
     t = ts.now()
     addthis += 1
-    t = ts.utc(int(2022), int(3), int(4), int(12), int(47), float(0)+addthis)
+    t = ts.utc(int(2022), int(3), int(31), int(11), int(9), float(9)+addthis)
     print t.utc_strftime()
     # print t.utc_strftime()
     connectivity_matrix = [[0 for c in range(conn_mat_size)] for r in range(conn_mat_size)]

@@ -28,6 +28,7 @@ import subprocess
 import threading
 import wget
 import shutil
+import enum
 
 import sys
 sys.path.append("../")
@@ -40,6 +41,10 @@ from routing.constellation_routing import *
 from comm_protocol.controller_main import *
 
 DEBUG = 1
+
+class TestbedMode(enum.Enum):
+   SWOnly = 1
+   SWPLUSHW = 2
 
 def ping_thread(net):
     test_node = net.getNodeByName("gs13")
@@ -312,7 +317,15 @@ def get_sats_by_name(filename):
 
 def main():
 
-    FreshRun = False
+    mode = TestbedMode.SWPLUSHW.value
+
+    if mode == TestbedMode.SWPLUSHW.value:
+        number_of_hw_sats = 1
+        number_of_hw_gs = 1
+        number_of_hw_nodes = number_of_hw_sats + number_of_hw_gs
+
+
+    FreshRun = True
     SimulationTime_secs = 20
     Step_secs = 1
 
@@ -343,66 +356,49 @@ def main():
         tle_url = "https://celestrak.com/NORAD/elements/supplemental/starlink.txt"
         tle_file = wget.download(tle_url, out = data_path)
         ground_stations = read_gs("../mobility/ground_stations.txt")
-        gs_Alan = {
-            "gid": 0,
-            "name": "Alan-Starlink",
-            "latitude_degrees_str": "51.52132683544218",
-            "longitude_degrees_str": "-1.7868832746954848",
-            "elevation_m_float": 0.0,
-            "cartesian_x": float(3974857.483),
-            "cartesian_y": float(-124004.072),
-            "cartesian_z": float(4969839.203),
-        }
 
-        gw_starlink = {
-            "gid": 1,
-            "name": "Starlink-GW-UK",
-            "latitude_degrees_str": "51.614537",
-            "longitude_degrees_str": "-0.574484",
-            "elevation_m_float": 0.0,
-            "cartesian_x": float(3968468.136),
-            "cartesian_y": float(-39791.724),
-            "cartesian_z": float(4976285.352),
-        }
+        if mode == TestbedMode.SWPLUSHW.value:
+            ground_stations_phys_index = []
+            for gs in ground_stations:
+                if gs["type"] == 1:
+                    ground_stations_phys_index.append(gs["gid"])
 
-        # ground_stations = [gs_Alan, gw_starlink]
+
         satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt")
 
         satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
         satellites_by_index = {}
 
+        if mode == TestbedMode.SWPLUSHW.value:
+            satellites_phys_index = []
+            satellites_phys = []
+            for i in range(number_of_hw_sats):
+                satellites_phys.append(satellites_by_name.items()[i])
+                print "Satellite ", satellites_by_name.items()[i], " is a physical sateellite "
+
         orbital_data = get_orbital_planes_classifications(data_path+"/starlink.txt",1)
 
     elif FreshRun == False:
         ground_stations = read_gs("../mobility/ground_stations.txt")
-        gs_Alan = {
-            "gid": 0,
-            "name": "Alan-Starlink",
-            "latitude_degrees_str": "51.52132683544218",
-            "longitude_degrees_str": "-1.7868832746954848",
-            "elevation_m_float": 0.0,
-            "cartesian_x": float(3974857.483),
-            "cartesian_y": float(-124004.072),
-            "cartesian_z": float(4969839.203),
-        }
 
-        gw_starlink = {
-            "gid": 1,
-            "name": "Starlink-GW-UK",
-            "latitude_degrees_str": "51.614537",
-            "longitude_degrees_str": "-0.574484",
-            "elevation_m_float": 0.0,
-            "cartesian_x": float(3968468.136),
-            "cartesian_y": float(-39791.724),
-            "cartesian_z": float(4976285.352),
-        }
+        if mode == TestbedMode.SWPLUSHW.value:
+            ground_stations_phys_index = []
+            for gs in ground_stations:
+                if gs["type"] == 1:
+                    ground_stations_phys_index.append(gs["gid"])
 
-        # ground_stations = [gs_Alan, gw_starlink]
         satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt")
 
         satellites_by_name_from_file = get_sats_by_name(data_path+"/satellites_by_name_log.txt")
         satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites if sat.name.split(" ")[0] in satellites_by_name_from_file}
         satellites_by_index = {}
+
+        if mode == TestbedMode.SWPLUSHW.value:
+            satellites_phys_index = []
+            satellites_phys = []
+            for i in range(number_of_hw_sats):
+                satellites_phys.append(satellites_by_name.items()[i])
+                print "Satellite ", satellites_by_name.items()[i], " is a physical sateellite "
 
         orbital_data = get_orbital_planes_classifications(data_path+"/starlink.txt",1)
 
@@ -436,6 +432,12 @@ def main():
         for i in range(len(orbit)):
             sat_index += 1
             satellites_by_index[sat_index] = orbit[i].name.split(" ")[0]
+
+            if mode == TestbedMode.SWPLUSHW.value:
+                for phys in satellites_phys:
+                    if orbit[i].name.split(" ")[0] in phys[0]:
+                        satellites_phys_index.append(sat_index)
+                        print "Satellite ", orbit[i].name.split(" ")[0], " is a physical satellite and its index = ", sat_index
 ####
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
@@ -464,6 +466,7 @@ def main():
         links_charateristics = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, actual_time)
 
     available_ips = generate_ips_for_constellation()
+    available_ips_phys = generate_ips_for_physical_nodes(10)
     if DEBUG == 1:
         print "..... Finished the Build Topology part"
 ####
@@ -474,11 +477,11 @@ def main():
     topology = sat_network(N=N)
     updates_files_name = ["2022-02-24 11:51:59 UTC_.txt", "2022-02-24 11:52:00 UTC_.txt", "2022-02-24 11:52:01 UTC_.txt", "2022-02-24 11:52:02 UTC_.txt"]
 
-    topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=links_charateristics["throughput_matrix"], link_latency=links_charateristics["latency_matrix"])
+    topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=links_charateristics["throughput_matrix"], link_latency=links_charateristics["latency_matrix"], Tmode=mode, physical_gs_index=ground_stations_phys_index, physical_sats_index=satellites_phys_index)
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
     #topology.updateRoutingTables_timer(Step_secs, data_path, net, updates_files_name, num_of_satellites, 0)
     net.start()
-    list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(data_path, net, available_ips)
+    list_of_Intf_IPs = topology.initial_ipv4_assignment_for_interfaces(data_path, net, available_ips, available_ips_phys)
     if FreshRun == True:
         dump_ALL(data_path, loggedTime, topg["isl_gls_links"], topg["management_interface"], satellites_by_index, satellites_by_name, TopologyRoutes["All_PreConfigured_routes"], GS_SAT_Table)
 

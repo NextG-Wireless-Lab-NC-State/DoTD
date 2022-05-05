@@ -30,7 +30,7 @@ def calc_distance_gs_sat_worker(args):
     return ground_station_satellites_in_range
 
 def distance_between_ground_station_satellite(ground_station, satellite, t):
-    bluffton = wgs84.latlon(float(ground_station["latitude_degrees_str"]), float(ground_station["longitude_degrees_str"]))
+    bluffton = wgs84.latlon(float(ground_station["latitude_degrees_str"]), float(ground_station["longitude_degrees_str"]), ground_station["elevation_m_float"])
     geocentric = satellite.at(t)
     difference = satellite - bluffton
     topocentric = difference.at(t)
@@ -38,6 +38,7 @@ def distance_between_ground_station_satellite(ground_station, satellite, t):
     alt, az, distance = topocentric.altaz()
 
     return distance.m
+    #return (az,distance.m, alt)
 
 def distance_between_two_satellites(satellite1, satellite2, t):
     position1 = satellite1.at(t)
@@ -195,7 +196,7 @@ def M_gs_sat_association_criteria_BasedOnDistance(connectivity_matrix, all_gs_sa
         chosen_sid = -1
         best_distance_m = 1000000000000000
         for (distance_m, sid, gr_id) in ground_station_satellites_in_range:
-            # print t.utc_strftime(), distance_m, sid, gr_id
+            # print t.utc_strftime(), az, distance_m, alt, sid, gr_id
             if gid == gr_id:
                 # if gid != 1: # USE CASE 1 -- REMOVE for general run
                 if distance_m < best_distance_m:

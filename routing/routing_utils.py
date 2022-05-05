@@ -26,6 +26,14 @@ def generate_ips_for_constellation():
 
     return available_ips
 
+def generate_ips_for_physical_nodes(num_of_ips):
+    available_ips = []
+    for i in range(1, num_of_ips):
+        ip = str("192.168.101.")+str(i)
+        available_ips.append((1, ip))
+
+    return available_ips
+
 def get_free_network_address(pool):
     free_ip = -1
     for i in pool:
