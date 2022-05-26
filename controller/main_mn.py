@@ -317,9 +317,11 @@ def get_sats_by_name(filename):
 
 def main():
 
-    mode = TestbedMode.SWPLUSHW.value
+    #mode = TestbedMode.SWPLUSHW.value
+    mode = TestbedMode.SWPLUSHW
 
-    if mode == TestbedMode.SWPLUSHW.value:
+#    if mode == TestbedMode.SWPLUSHW.value:
+    if mode == TestbedMode.SWPLUSHW:
         number_of_hw_sats = 1
         number_of_hw_gs = 1
         number_of_hw_nodes = number_of_hw_sats + number_of_hw_gs
@@ -357,7 +359,8 @@ def main():
         tle_file = wget.download(tle_url, out = data_path)
         ground_stations = read_gs("../mobility/ground_stations.txt")
 
-        if mode == TestbedMode.SWPLUSHW.value:
+        #if mode == TestbedMode.SWPLUSHW.value:
+        if mode == TestbedMode.SWPLUSHW:
             ground_stations_phys_index = []
             for gs in ground_stations:
                 if gs["type"] == 1:
@@ -369,7 +372,8 @@ def main():
         satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
         satellites_by_index = {}
 
-        if mode == TestbedMode.SWPLUSHW.value:
+        #if mode == TestbedMode.SWPLUSHW.value:
+        if mode == TestbedMode.SWPLUSHW:
             satellites_phys_index = []
             satellites_phys = []
             for i in range(number_of_hw_sats):
@@ -381,7 +385,8 @@ def main():
     elif FreshRun == False:
         ground_stations = read_gs("../mobility/ground_stations.txt")
 
-        if mode == TestbedMode.SWPLUSHW.value:
+        #if mode == TestbedMode.SWPLUSHW.value:
+        if mode == TestbedMode.SWPLUSHW:
             ground_stations_phys_index = []
             for gs in ground_stations:
                 if gs["type"] == 1:
@@ -393,7 +398,8 @@ def main():
         satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites if sat.name.split(" ")[0] in satellites_by_name_from_file}
         satellites_by_index = {}
 
-        if mode == TestbedMode.SWPLUSHW.value:
+        #if mode == TestbedMode.SWPLUSHW.value:
+        if mode == TestbedMode.SWPLUSHW:
             satellites_phys_index = []
             satellites_phys = []
             for i in range(number_of_hw_sats):
@@ -433,7 +439,8 @@ def main():
             sat_index += 1
             satellites_by_index[sat_index] = orbit[i].name.split(" ")[0]
 
-            if mode == TestbedMode.SWPLUSHW.value:
+            #if mode == TestbedMode.SWPLUSHW.value:
+            if mode == TestbedMode.SWPLUSHW:
                 for phys in satellites_phys:
                     if orbit[i].name.split(" ")[0] in phys[0]:
                         satellites_phys_index.append(sat_index)
