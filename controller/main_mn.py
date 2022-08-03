@@ -320,7 +320,7 @@ def main():
     #mode = TestbedMode.SWPLUSHW.value
     mode = TestbedMode.SWPLUSHW
 
-#    if mode == TestbedMode.SWPLUSHW.value:
+   # if mode == TestbedMode.SWPLUSHW.value:
     if mode == TestbedMode.SWPLUSHW:
         number_of_hw_sats = 1
         number_of_hw_gs = 1
@@ -328,7 +328,7 @@ def main():
 
 
     FreshRun = True
-    SimulationTime_secs = 20
+    SimulationTime_secs = 20  #orginally 20 seconds
     Step_secs = 1
 
     actual_time = 0
@@ -336,8 +336,8 @@ def main():
     data_timestamp = "2022,03,16,11,29,36.124013"
     data_path = "../data_gen/archieved_data_"+str(data_timestamp)
 
-    N = 3
-    number_of_orbits = 72
+    N = 3   #3 was the original
+    number_of_orbits = 72  #72 was original
 
     if FreshRun == True:
         ts = load.timescale()
@@ -355,7 +355,7 @@ def main():
         data_path = "../data_gen/archieved_data_"+str(loggedTime)
         os.mkdir(data_path)
 
-        tle_url = "https://celestrak.com/NORAD/elements/supplemental/starlink.txt"
+        tle_url = "https://celestrak.com/NORAD/elements/supplemental/oneweb.txt"
         tle_file = wget.download(tle_url, out = data_path)
         ground_stations = read_gs("../mobility/ground_stations.txt")
 
@@ -367,7 +367,7 @@ def main():
                     ground_stations_phys_index.append(gs["gid"])
 
 
-        satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/starlink.txt")
+        satellites = load.tle_file("https://celestrak.com/NORAD/elements/supplemental/oneweb.txt")
 
         satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
         satellites_by_index = {}
@@ -439,7 +439,7 @@ def main():
             sat_index += 1
             satellites_by_index[sat_index] = orbit[i].name.split(" ")[0]
 
-            #if mode == TestbedMode.SWPLUSHW.value:
+           # if mode == TestbedMode.SWPLUSHW.value:
             if mode == TestbedMode.SWPLUSHW:
                 for phys in satellites_phys:
                     if orbit[i].name.split(" ")[0] in phys[0]:
@@ -473,7 +473,8 @@ def main():
         links_charateristics = calculate_link_charateristics_for_gsls_isls(connectivity_matrix, satellites_by_index, satellites_by_name, ground_stations, actual_time)
 
     available_ips = generate_ips_for_constellation()
-    available_ips_phys = generate_ips_for_physical_nodes(10)
+    available_ips_phys = generate_ips_for_physical_nodes()
+    #available_ips_phys = generate_ips_for_physical_nodes(10)
     if DEBUG == 1:
         print "..... Finished the Build Topology part"
 ####
@@ -482,7 +483,7 @@ def main():
     TopologyRoutes = get_topology_routes(FreshRun, data_path, num_of_satellites, satellites_by_index, ground_stations, connectivity_matrix, links_charateristics)
     # print len(TopologyRoutes["All_PreConfigured_routes"])
     topology = sat_network(N=N)
-    updates_files_name = ["2022-02-24 11:51:59 UTC_.txt", "2022-02-24 11:52:00 UTC_.txt", "2022-02-24 11:52:01 UTC_.txt", "2022-02-24 11:52:02 UTC_.txt"]
+    updates_files_name = ["2022-02-24 11:51:59 UTC_.txt", "2022-02-24 11:52:00 UTC_.txt", "2022-02-24 11:52:01 UTC_.txt", "2022-02-24 11:52:02 UTC_.txt"] 
 
     topg = topology.create_sat_network(satellites=satellites_by_index, ground_stations=ground_stations, connectivity_matrix=connectivity_matrix, link_throughput=links_charateristics["throughput_matrix"], link_latency=links_charateristics["latency_matrix"], Tmode=mode, physical_gs_index=ground_stations_phys_index, physical_sats_index=satellites_phys_index)
     net = Mininet(topo = topology, link=TCLink, autoSetMacs = True)
@@ -584,5 +585,5 @@ def main():
 ####
 #####
 
-setLogLevel('info')    # 'info' is normal; 'debug' is for when there are problems
+setLogLevel('debug')    # 'info' is normal; 'debug' is for when there are problems
 main()

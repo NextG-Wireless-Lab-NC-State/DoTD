@@ -189,7 +189,7 @@ def static_routing_update_commands(static_routes, links, list_of_Intf_IPs, satel
                 print cmd_on_dest_node
 
 
-def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites, intfs_to_physcial):
+def get_static_route_parameter(route, links, list_of_Intf_IPs, satellites): #intfs_to_physcial
     parameters = []
     current_route = route[0];
     if len(current_route) > 2:

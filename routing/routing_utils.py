@@ -26,13 +26,27 @@ def generate_ips_for_constellation():
 
     return available_ips
 
-def generate_ips_for_physical_nodes(num_of_ips):
-    available_ips = []
-    for i in range(1, num_of_ips):
-        ip = str("192.168.101.")+str(i)
-        available_ips.append((1, ip))
+#def generate_ips_for_physical_nodes(num_of_ips):
+    #available_ips = []
+    #for i in range(1, num_of_ips):
+        #ip = str("192.168.101.")+str(i)
+       #available_ips.append((1, ip))
+   # return available_ips
 
-    return available_ips
+#joseph long edited this
+def generate_ips_for_physical_nodes():
+    phys_available_ips = []
+    #ip1 = '192.168.30.13'
+    #ip2 = '192.168.30.14'
+    #ip3 = '192.168.30.15'
+    #ip4 = '192.168.30.16'
+    #ip5 = '192.168.30.12'
+    for i in range(11, 30):
+        #ip = str("192.168.30." + str(i))
+        ip = str("192.168.30.15")
+        #if( ip == ip1) or ( ip == ip2) or (ip == ip3) or (ip == ip4) or (ip == ip5):
+        phys_available_ips.append((1, ip))
+    return phys_available_ips
 
 def get_free_network_address(pool):
     free_ip = -1
