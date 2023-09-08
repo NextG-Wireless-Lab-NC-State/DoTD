@@ -1,0 +1,7 @@
+mean_and_stddev:
+    data_file:  iperf_LA_GRID_GS12_GS5.txt
+    test_type:  iperf
+    input_dir:  /media/mininet/SSUNG_PRO_1/mn_results/starlink/analysis_results
+    output_dir: plots/
+    save_plot:  false   
+    threads:    2

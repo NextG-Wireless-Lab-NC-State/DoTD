@@ -6,7 +6,7 @@ import numpy as np
 import datetime
 
 import threading
-import Queue
+import queue
 from copy import copy, deepcopy
 
 import networkx as nx
@@ -16,37 +16,24 @@ import itertools
 from multiprocessing import Process, Manager, Pool
 
 
-def generate_ips_for_constellation():
+def generate_ips_for_constellation(ip_subnet):
+    ip_octs = ip_subnet.split(".")
     available_ips = []
-    for i in range (0, 250):
-        for j in range (0, 250):
+    for i in range (int(ip_octs[1]), 250):
+        for j in range (int(ip_octs[2]), 250):
             for k in range (0, 240, 16):
-                ip = str("10.")+str(i)+"."+str(j)+"."+str(k)
+                ip = str(str(ip_octs[0])+".")+str(i)+"."+str(j)+"."+str(k)
                 available_ips.append((1, ip))
 
     return available_ips
 
-#def generate_ips_for_physical_nodes(num_of_ips):
-    #available_ips = []
-    #for i in range(1, num_of_ips):
-        #ip = str("192.168.101.")+str(i)
-       #available_ips.append((1, ip))
-   # return available_ips
+def generate_ips_for_physical_nodes(num_of_ips):
+    available_ips = []
+    for i in range(1, num_of_ips):
+        ip = str("192.168.101.")+str(i)
+        available_ips.append((1, ip))
 
-#joseph long edited this
-def generate_ips_for_physical_nodes():
-    phys_available_ips = []
-    #ip1 = '192.168.30.13'
-    #ip2 = '192.168.30.14'
-    #ip3 = '192.168.30.15'
-    #ip4 = '192.168.30.16'
-    #ip5 = '192.168.30.12'
-    for i in range(11, 30):
-        #ip = str("192.168.30." + str(i))
-        ip = str("192.168.30.15")
-        #if( ip == ip1) or ( ip == ip2) or (ip == ip3) or (ip == ip4) or (ip == ip5):
-        phys_available_ips.append((1, ip))
-    return phys_available_ips
+    return available_ips
 
 def get_free_network_address(pool):
     free_ip = -1
@@ -79,7 +66,7 @@ def assign_ips_for_constellation(links, addresses_pool):
            list_of_Intf_IPs.append({"Interface": linkIntf1, "IP": oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+1)+"/28"})
            list_of_Intf_IPs.append({"Interface": linkIntf2, "IP": oct1+"."+oct2+"."+oct3+"."+str(int(oct4)+2)+"/28"})
         else:
-           print "[Create Sat Network -- GSL] No Available IPs to assign"
+           print("[Create Sat Network -- GSL] No Available IPs to assign")
     return list_of_Intf_IPs
 
 def get_link_intfs_ips(node1, node2, links, list_of_Intf_IPs):
@@ -90,7 +77,7 @@ def get_link_intfs_ips(node1, node2, links, list_of_Intf_IPs):
             n1n2Link = link
             break
 
-    print n1n2Link
+    print(n1n2Link)
     linkIntf1, linkIntf2 = n1n2Link.split(":")
     # print linkIntf1, linkIntf2
     for intf_IP in list_of_Intf_IPs:

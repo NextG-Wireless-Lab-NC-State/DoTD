@@ -1,0 +1,24 @@
+PING 12.0.192.194 (12.0.192.194) 56(84) bytes of data.
+64 bytes from 12.0.192.194: icmp_seq=1 ttl=37 time=40.8 ms
+64 bytes from 12.0.192.194: icmp_seq=2 ttl=37 time=14.3 ms
+64 bytes from 12.0.192.194: icmp_seq=3 ttl=37 time=26.4 ms
+64 bytes from 12.0.192.194: icmp_seq=4 ttl=37 time=9.07 ms
+64 bytes from 12.0.192.194: icmp_seq=5 ttl=37 time=6.57 ms
+64 bytes from 12.0.192.194: icmp_seq=6 ttl=37 time=25.5 ms
+64 bytes from 12.0.192.194: icmp_seq=7 ttl=37 time=13.7 ms
+64 bytes from 12.0.192.194: icmp_seq=8 ttl=37 time=8.93 ms
+64 bytes from 12.0.192.194: icmp_seq=9 ttl=37 time=9.19 ms
+64 bytes from 12.0.192.194: icmp_seq=10 ttl=37 time=9.31 ms
+64 bytes from 12.0.192.194: icmp_seq=11 ttl=37 time=99.5 ms
+64 bytes from 12.0.192.194: icmp_seq=12 ttl=37 time=22.2 ms
+64 bytes from 12.0.192.194: icmp_seq=13 ttl=37 time=33.4 ms
+64 bytes from 12.0.192.194: icmp_seq=14 ttl=37 time=10.1 ms
+64 bytes from 12.0.192.194: icmp_seq=15 ttl=37 time=9.32 ms
+64 bytes from 12.0.192.194: icmp_seq=16 ttl=37 time=25.4 ms
+64 bytes from 12.0.192.194: icmp_seq=17 ttl=37 time=25.3 ms
+64 bytes from 12.0.192.194: icmp_seq=18 ttl=37 time=35.6 ms
+64 bytes from 12.0.192.194: icmp_seq=19 ttl=37 time=8.76 ms
+64 bytes from 12.0.192.194: icmp_seq=20 ttl=37 time=8.72 ms
+64 bytes from 12.0.192.194: icmp_seq=21 ttl=37 time=4.54 ms
+64 bytes from 12.0.192.194: icmp_seq=22 ttl=37 time=3.77 ms
+64 bytes from 12.0.192.194: icmp_seq=23 ttl=37 time=3.70 ms
