@@ -209,13 +209,13 @@ def parse_connectivity_matrix_n_charateristics(time_utc, conn_mat_size, topology
                 lines = topology_file.readlines()
                 for line in lines:
                     link_config                                                     = line.split(",")
-                    connectivity_matrix[int(link_config[0])][int(link_config[1])]   = 1
-                    connectivity_matrix[int(link_config[1])][int(link_config[0])]   = 1
+                    connectivity_matrix[int(float(link_config[0]))][int(float(link_config[1]))]   = 1
+                    connectivity_matrix[int(float(link_config[1]))][int(float(link_config[0]))]   = 1
 
-                    links_latency[int(link_config[0])][int(link_config[1])]         = round(float(link_config[2]),0)
-                    links_latency[int(link_config[1])][int(link_config[0])]         = round(float(link_config[2]),0)
-                    links_capacity[int(link_config[0])][int(link_config[1])]        = round(float(link_config[3]),0)
-                    links_capacity[int(link_config[1])][int(link_config[0])]        = round(float(link_config[3]),0)
+                    links_latency[int(float(link_config[0]))][int(float(link_config[1]))]         = round(float(link_config[2]),0)
+                    links_latency[int(float(link_config[1]))][int(float(link_config[0]))]         = round(float(link_config[2]),0)
+                    links_capacity[int(float(link_config[0]))][int(float(link_config[1]))]        = round(float(link_config[3]),0)
+                    links_capacity[int(float(link_config[1]))][int(float(link_config[0]))]        = round(float(link_config[3]),0)
                 break
     if topology_file_found == 0:
         print("[Error] No Topology file available ... check the simulation step resolution")
