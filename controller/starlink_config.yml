@@ -3,11 +3,11 @@ constellation:
     number_of_shells: 1
     shell1:
         name: shell1
-        orbits: 72
-        sat_per_orbit: 22
-        altitude: 550
-        elevation_angle: 25
-        inclination: 53
+        orbits: 9
+        sat_per_orbit: 8
+        altitude: 1500
+        elevation_angle: 30
+        inclination: 50
     topology:
         association_criteria_GSL: BASED_ON_DISTANCE_ONLY_MININET
         ISL: grid
@@ -19,21 +19,21 @@ constellation:
         other_constellation_ip_range: 11.0.0.0
 
 ground_stations:
-    gs_file: ../mobility/ground_stations_experiments.txt
+    gs_file: /home/spacenet/Desktop/spacenet_files/input/gs_files/ground_stations_fake.txt  #../mobility/ground_stations_experiments.txt
 
 simulation:
-    start_time: 2023,03,13,13,2,27
-    length: 39 
+    start_time: 2024,01,19,17,0,1
+    length: 30
     step: 1
-    debug: 0
+    debug: 1
 
 application:
     type: iperf
-    source: gs12
-    destination: gs5
-    duration: 39
+    source: gs1
+    destination: gs2
+    duration: 30
     congestion_control: cubic
-    result_out: ../analysis/iperf_Longest_Association_GRID_GS5_GS12
+    result_out: /home/spacenet/Desktop/spacenet_files/output/analysis/metrics/GS5_GS12_iperf.txt
     background_traffic: no
     tcpdump: no
 
@@ -44,6 +44,6 @@ resiliency:
   e_timestamps: ["2022,12,30,14,1,20", "2022,12,30,14,1,20"]
 
 data_n_results:
-    connectivity_matrix: ../utils/connectivity_matrix/starlink/
-    routing: ../utils/routing/starlink/
-    simulation_results: ../results/starlink
+    connectivity_matrix: /home/spacenet/Desktop/spacenet_files/output/connectivity_matrix/starlink/
+    routing: /home/spacenet/Desktop/spacenet_files/output/routing/starlink/
+    simulation_results: /home/spacenet/Desktop/spacenet_files/output/general/starlink/
