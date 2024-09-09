@@ -21,6 +21,8 @@ from routing.routing_utils import *
 from routing.constellation_routing import *
 from utils.utils import *
 
+import topology.visualize_topology as vt
+
 # =================================================================================== #
 # -------------------------------- MAIN FUNCTION ------------------------------------ #
 # =================================================================================== #
@@ -41,9 +43,11 @@ def main():
     # Configuration and TLE data
     main_configurations = parse_config_file_yml(".","starlink_config.yml")  # Parse the main configurations from the YAML file.
     path_of_recent_TLE = get_recent_TLEs_using_datetime("../utils/", main_configurations["simulation"]["start_time"], main_configurations["constellation"]["operator"])  # Get the path of the most recent TLE file.
+    # path_of_recent_TLE = "/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/utils/fake_TLE_generation/TLE_fake_1707853243"
     print("Recent TLE path: ", path_of_recent_TLE)  # Print the path of the recent TLE file.
 
     # Satellite data
+    # satellites = load.tle_file("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1")  # Load the satellites from the TLE file.
     satellites = load.tle_file(path_of_recent_TLE)  # Load the satellites from the TLE file.
     satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}  # Create a dictionary of satellites by name.
     satellites_by_index = {}  # Initialize an empty dictionary for satellites by index.
@@ -52,7 +56,7 @@ def main():
     orbital_data = get_orbital_planes_classifications(path_of_recent_TLE, main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
 
     # Arranging satellites
-    arranged_sats = arrange_satellites("/home/spacenet/Desktop/spacenet_files/output/", orbital_data, satellites_by_name, main_configurations, main_configurations["simulation"]["start_time"] ,satellites_by_index, path_of_recent_TLE.split("_")[2])  # Arrange the satellites in the orbits.
+    arranged_sats = arrange_satellites("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, main_configurations["simulation"]["start_time"] ,satellites_by_index, path_of_recent_TLE.split("_")[2])  # Arrange the satellites in the orbits.
     satellites_by_index = arranged_sats["satellites by index"]  # Update the dictionary of satellites by index.
 
     # Ground station data
@@ -81,8 +85,7 @@ def main():
     
 
     # Begin execution of the simulation
-    while sim_timeCount >= 1:
-
+    while sim_timeCount >= 2:
         # Increment the simulation time by the step size specified in the configuration.
         increments += main_configurations["simulation"]["step"]
 
@@ -111,7 +114,7 @@ def main():
             satellites_by_index             = reloaded_vars["satellites_by_index"]
             num_of_satellites               = reloaded_vars["num_of_satellites"]
 
-	# Calculate the size of the connectivity matrix.
+	    # Calculate the size of the connectivity matrix.
         conn_mat_size           = num_of_satellites + num_of_ground_stations
 
         # Parse the connectivity matrix and characteristics.
@@ -145,7 +148,7 @@ def main():
                 exit()
 
             # Create a new file to write the links.
-            absolute_path   = "/home/spacenet/Desktop/spacenet_files/output/general/starlink/"
+            absolute_path   = "/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/general/starlink/"
             file            = open(absolute_path+"links.txt", 'w')
             
             # ************************************************************
@@ -159,6 +162,9 @@ def main():
             net.start()
             list_of_Intf_IPs        = topology.initial_ipv4_assignment_for_interfaces_optimised(main_configurations["data_n_results"]["simulation_results"], net, available_ips, main_configurations["constellation"]["routing"]["border_gateway"])
             
+            # Visualize topology at current time step
+            # vt.visualize(arranged_sats, topg["isl_gls_links"], time_utc_inc)
+
             # Initialize a dictionary to store the links.
             links_hash              = {}
 
@@ -170,8 +176,8 @@ def main():
                 links_hash[str(endpoints)]   = []
                 links_hash[str(endpoints)].append(link)
             file.close()
-
-
+            
+            
             # Prepare the routing configuration commands. This function generates the necessary commands to configure the routing in the network.
             prepare_routing_config_commands(topology, main_configurations["data_n_results"]["simulation_results"], TopologyRoutes["All_PreConfigured_routes"], links_hash, list_of_Intf_IPs, satellites_by_index, 20)
 
@@ -183,7 +189,7 @@ def main():
             topology.startRoutingConfigV2(main_configurations["data_n_results"]["simulation_results"], net, satellites_by_index)
 
             # Run the network performance utility. This function runs a network performance application to measure the performance of the network.
-            net = run_application(main_configurations["data_n_results"]["simulation_results"], net, main_configurations, list_of_Intf_IPs)
+            net = run_application(main_configurations["data_n_results"]["simulation_results"], net, main_configurations, list_of_Intf_IPs, increments)
 
 
         # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||

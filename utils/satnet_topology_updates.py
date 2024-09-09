@@ -41,8 +41,8 @@ def main():
     tle_timestamp       = path_of_recent_TLE.split("_")[2]
 
     # Load the satellites from the TLE file
+    # satellites = load.tle_file("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1")
     satellites = load.tle_file(path_of_recent_TLE)
-
     # Create dictionaries of satellites by name and index
     satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
     satellites_by_index = {}
@@ -51,8 +51,9 @@ def main():
     ground_stations = read_gs(main_configurations["ground_stations"]["gs_file"])
 
     # Get the orbital data and arrange the satellites in the orbits
+    # orbital_data  = get_orbital_planes_classifications("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
     orbital_data  = get_orbital_planes_classifications(path_of_recent_TLE, main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
-    arranged_sats = arrange_satellites("/home/spacenet/Desktop/spacenet_files/output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
+    arranged_sats = arrange_satellites("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
     satellites_by_index = arranged_sats["satellites by index"]
     satellites_sorted_in_orbits = arranged_sats["sorted satellite in orbits"]
 
@@ -68,7 +69,7 @@ def main():
     # Initialize the optimal routes per timestep and time history
     optimal_routes_per_timestep = []
     time_hist = np.arange(0, main_configurations["simulation"]["length"], time_resolution_in_seconds)
-
+    M, e = motif_find_m_se_e(satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, time_utc)
     # Loop over the time history, update the topology and save it in a file
     for inc in tqdm(time_hist, total=len(time_hist)):
         
@@ -114,7 +115,7 @@ def main():
         if main_configurations["constellation"]["operator"] == "oneweb":
             connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS_ONEWEB", time_utc_inc)
         else:
-            connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, "SAME_ORBIT_AND_GRID_ACROSS_ORBITS", time_utc_inc)
+            connectivity_matrix = mininet_add_ISLs(connectivity_matrix, satellites_sorted_in_orbits, satellites_by_name, satellites_by_index, main_configurations["constellation"]["topology"]["association_criteria_ISL"], time_utc_inc, M, e)
         connectivity_matrix = mininet_add_GSLs_parallel(connectivity_matrix, satellites_by_name, satellites_by_index, ground_stations, 2, main_configurations["constellation"]["topology"]["association_criteria_GSL"], time_utc_inc, main_configurations)
 
         # Calculate the link characteristics for GSLs and ISLs

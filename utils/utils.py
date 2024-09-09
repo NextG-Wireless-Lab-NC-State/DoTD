@@ -115,6 +115,9 @@ def get_recent_TLEs_using_timestamp(
     #print(timestamp_diff, file_timesamp, timestamp)
     return recent_file
 
+def TLE_to_datetime(tle_str):
+    unix_time = datetime.utcfromtimestamp(tle_str)
+
 
 def get_recent_TLEs_using_datetime(
                                     path                : str,  
@@ -197,7 +200,7 @@ def save_topology(
     existing_links = []
 
     # Generate a new file
-    f = open("/home/spacenet/Desktop/spacenet_files/output/connectivity_matrix/"+main_configurations["constellation"]["operator"]+"/topology_"+timestamp+".txt", "a")
+    f = open("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/connectivity_matrix/"+main_configurations["constellation"]["operator"]+"/topology_"+timestamp+".txt", "a")
 
     # Iterate over the connectivity matrix list
     for i in range(len(connectivity_matrix)):
@@ -233,7 +236,7 @@ def save_routes(
     """
 
     # Generate a new file
-    routes_log = open("/home/spacenet/Desktop/spacenet_files/output/routing/"+main_configurations["constellation"]["operator"]+"/routes_"+timestamp+".txt", "a")
+    routes_log = open("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/routing/"+main_configurations["constellation"]["operator"]+"/routes_"+timestamp+".txt", "a")
     
     # Iterate over the routes list
     for route in routes:
@@ -262,7 +265,7 @@ def save_optimal_path(
     """
 
     # Generate a new file
-    optimal_log = open("/home/spacenet/Desktop/spacenet_files/output/analysis/optimal_routes/"+main_configurations["constellation"]["operator"]+"/best_path_"+timestap+".txt", "a")
+    optimal_log = open("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/analysis/optimal_routes/"+main_configurations["constellation"]["operator"]+"/best_path_"+timestap+".txt", "a")
     
     # Iterate over the optimal path list
     for path in optimal_path:
@@ -423,14 +426,17 @@ def parse_connectivity_matrix_n_charateristics(
 
                     # Update the connectivity matrix
                     connectivity_matrix[int(float(link_config[0]))][int(float(link_config[1]))]     = 1
+                    #TODO: Change Back
                     connectivity_matrix[int(float(link_config[1]))][int(float(link_config[0]))]     = 1
 
                     # Update links latency matrices
                     links_latency[int(float(link_config[0]))][int(float(link_config[1]))]           = round(float(link_config[2]),0)
+                    #TODO: Change Back
                     links_latency[int(float(link_config[1]))][int(float(link_config[0]))]           = round(float(link_config[2]),0)
 
                     # Update links capacity matrices
                     links_capacity[int(float(link_config[0]))][int(float(link_config[1]))]          = round(float(link_config[3]),0)
+                    #TODO: Change Back
                     links_capacity[int(float(link_config[1]))][int(float(link_config[0]))]          = round(float(link_config[3]),0)
 
                 # Break after processing the first matching file 
@@ -627,7 +633,7 @@ def arrange_satellites(
     f.close()
 
     # New path for results
-    absolute_path = "/home/spacenet/Desktop/spacenet_files/output/general/starlink/"
+    absolute_path = "/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/general/starlink/"
    
     # Generate new file for sorted satellites in their orbits
     file = open(absolute_path+"orbits_satellites.txt", 'w')
@@ -1107,7 +1113,8 @@ def iperf_app(
                 path                    : str, 
                 net                     : object,
                 main_configurations     : dict,
-                list_of_Intf_IPs        : dict
+                list_of_Intf_IPs        : dict,
+                sim_timeCount,
              ) -> object:
     """
     Generates and configures IPerf commands for throughput testing using Mininet.
@@ -1134,7 +1141,7 @@ def iperf_app(
     source_ip = list_of_Intf_IPs[str(node2)+"-eth0"][0].split("/")[0]
 
     # Generate the IPerf command for the source node
-    iperf_command = "iperf -c "+str(source_ip)+" -p 5201 -i1 -t"+str(main_configurations["application"]["duration"])+ " > "+str(main_configurations["application"]["result_out"])+ " &"
+    iperf_command = "iperf -c "+str(source_ip)+" -p 5201 -i1 -t"+str(main_configurations["application"]["duration"])+ " > " + str(main_configurations["application"]["result_out"]) + f"{sim_timeCount}" + " &"
     
     # print iperf_command, node1, node2
 
@@ -1152,7 +1159,8 @@ def ping_app(
                 path                    : str, 
                 net                     : object,
                 main_configurations     : dict,
-                list_of_Intf_IPs        : dict
+                list_of_Intf_IPs        : dict,
+                sim_timeCount,
             ) -> object:
     """
     Generates and configures Ping commands for latency testing using Mininet.
@@ -1179,10 +1187,11 @@ def ping_app(
     source_ip = list_of_Intf_IPs[str(node2)+"-eth0"][0].split("/")[0]
 
     # Generate the Ping command for the source node
-    ping_command = "ping "+str(source_ip)+" > "+str(main_configurations["application"]["result_out"])+" &"
+    ping_command = "ping -c 20 "+str(source_ip)+" > " + str(main_configurations["application"]["result_out"]) + " &"
 
     # Execute the IPerf command on the source node
     net_node1.cmd(ping_command)
+    time.sleep(10)
 
     # Return the updated Mininet network object
     return net
@@ -1192,7 +1201,8 @@ def run_application(
                         path                    : str, 
                         net                     : object,
                         main_configurations     : dict,
-                        list_of_Intf_IPs        : dict
+                        list_of_Intf_IPs        : dict,
+                        sim_timeCount,
                    ) -> object:
     """
     Selects the network performance test defined by simulation configuration file and returns the updated Mininet object.
@@ -1209,11 +1219,11 @@ def run_application(
 
     # IPerf:    Throughput testing
     if main_configurations["application"]["type"] == "iperf":
-        net = iperf_app(path, net, main_configurations, list_of_Intf_IPs)
+        net = iperf_app(path, net, main_configurations, list_of_Intf_IPs, sim_timeCount)
 
     # Ping:     Latency testing
     if main_configurations["application"]["type"] == "ping":
-        net = ping_app(path, net, main_configurations, list_of_Intf_IPs)
+        net = ping_app(path, net, main_configurations, list_of_Intf_IPs, sim_timeCount)
 
     # Return the updated Mininet network object
     return net

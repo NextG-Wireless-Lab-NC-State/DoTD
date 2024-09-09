@@ -7,7 +7,7 @@ from utils.utils import *
 
 TopologyFile="/home/mininet/simulator/constellation-simulator-main/utils/connectivity_matrix/starlink/topology_2023_06_28_13_2_26.0.txt"
 
-print(TopologyFile)
+# print(TopologyFile)
 
 
 ts = load.timescale()

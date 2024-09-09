@@ -782,7 +782,7 @@ def lightweight_routing(data_path, route_changes, links_updated, num_of_satellit
     update_gsl_routing_cmd = [] # Initialize the update GSL routing command list
     isl_ch = 0 # Initialize the number of ISL changes
     gsl_ch = 0 # Initialize the number of GSL changes
-    allchanges_log = open(data_path+"/allchanges_log_"+str(t_time.utc_strftime())+"_.txt", "a") # Open the all changes log file for appending
+    allchanges_log = open(data_path+"/allchanges_log_"+str(t_time.utc_strftime()).replace(":", "_")+"_.txt", "a") # Open the all changes log file for appending
     for change in route_changes: # For each change in the route changes
         start = round(time.time()*1000) # Set the start time to the current time
         # print "the updated route --> ", change

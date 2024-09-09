@@ -294,9 +294,11 @@ class sat_network(Topo):
 
                     # Update connectivity_matrix_temp and interface counts
                     connectivity_matrix_temp[i][j] = 0
+                    #TODO: HERE Change back
                     connectivity_matrix_temp[j][i] = 0
 
                     sat_intf_count[i] = sat_intf_count[i] + 1
+                    #TODO: HERE Change back
                     sat_intf_count[j] = sat_intf_count[j] + 1
 
 
@@ -937,7 +939,7 @@ class sat_network(Topo):
         for i in range(0, len(satellites)):
             sat_node = net.getNodeByName("sat"+str(i))
             # Make the routing script executable and execute it
-            sat_node.cmd("chmod +x "+data_path+"/cmd_files/sat"+str(i)+"_routes.sh && ./"+data_path+"/cmd_files/sat"+str(i)+"_routes.sh &")
+            sat_node.cmd("chmod +x "+data_path+"/cmd_files/sat"+str(i)+"_routes.sh && "+data_path+"/cmd_files/sat"+str(i)+"_routes.sh &")
             patch_counter -= 1
             if patch_counter == 0:
                 time.sleep(8)
@@ -951,7 +953,7 @@ class sat_network(Topo):
         # Kill all processes related to the routing script
         for i in range(0, len(satellites)):
             sat_node = net.getNodeByName("sat"+str(i))
-            pkill_command = "pkill -f "+"*_routes.sh"
+            pkill_command = "pkill -f "+f"sat{i}_routes.sh"
             sat_node.cmd(pkill_command)
 
             # sat_node.cmd("python ../comm_protocol/config_gs_sat_table.py "+"sat"+str(i)+" &")
