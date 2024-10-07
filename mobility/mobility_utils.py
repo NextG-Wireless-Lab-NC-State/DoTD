@@ -5,6 +5,8 @@ import itertools
 import sys
 sys.path.append("../")
 from link.link_utils import *
+from mobility.DoTD import DoTD_History
+import numpy as np
 
 
 def calc_max_gsl_length(
@@ -211,7 +213,7 @@ def find_adjacent_orbit_sat(
         distance = distance_between_two_satellites(origin_sat, adj_plane_sats[i], t)
 
         # Check if the calculated distance is smaller than both the current minimum distance and a threshold value
-        if distance < min_distance and distance < 9006000:
+        if distance < min_distance:# and distance < 9006000:
             min_distance = distance # update the minimum distance
             nearest_sat_in_adj_plane = adj_plane_sats[i] # set the current adj. plane sat as the nearest to the original sat
 
@@ -280,6 +282,12 @@ def find_connections(connectivity_matrix, i_src):
     return nodes
 
 
+def is_isl_connected(s1, s2, t, dmax=6006000): #TODO: Update
+
+    if distance_between_two_satellites(s1, s2, t) < dmax:
+        return True
+    else:
+        return False
 
 def mininet_add_ISLs(
                     connectivity_matrix, 
@@ -291,6 +299,7 @@ def mininet_add_ISLs(
                     M=None,
                     e=None,
                     n_seq=0,
+                    dotd:DoTD_History = None
                     ):
     """
     Adds Inter-Satellite Links (ISLs) to the connectivity matrix
@@ -314,7 +323,97 @@ def mininet_add_ISLs(
 
     # Check the ISL configuration (only one for the time being)
 
-    if isl_config == "PLUS_GRID":
+    if isl_config == "DOTD":
+        M = len(satellites_by_index)
+        # M = 100
+        dotd.step()
+        link_characterstics = calculate_link_charateristics(satellites_by_index, satellites_by_name, t)
+        latency_matrix    = np.array(link_characterstics["latency_matrix"])
+        throughput_matrix = np.array(link_characterstics["throughput_matrix"]) / 1000
+        distance_matrix   = latency_matrix / 1000 * 299792458.0
+        is_connectd_matrix = (distance_matrix <= 10000*1000)
+        latency_matrix = latency_matrix * is_connectd_matrix/1000
+        S_max_t = dotd.S_max[dotd.t - 1]
+        L_max_t = dotd.L_max[dotd.t - 1]
+        S_max_t = max( S_max_t, np.max(throughput_matrix.ravel()) )
+        L_max_t = max( L_max_t, np.max( latency_matrix.ravel() ) )
+        dotd.S_max[dotd.t] = S_max_t
+        dotd.L_max[dotd.t] = L_max_t
+
+
+        A_k_x_t = np.zeros((M, M))
+        for k in range(M):
+            S_bar_k_x_t     = is_connectd_matrix[k, :] * throughput_matrix[k, :] / S_max_t
+            L_bar_k_x_t     = is_connectd_matrix[k, :] * (1-latency_matrix[k, :]/L_max_t)
+            phi_bar_i_j_tm1 = is_connectd_matrix[k, :] * dotd.phi_i_j_t[k, :, dotd.t-1] / 4
+            A_k_x_t[k, :] = dotd.w1 * S_bar_k_x_t + dotd.w2*(L_bar_k_x_t) + dotd.w3*phi_bar_i_j_tm1 + is_connectd_matrix[k, :] * dotd.PI_i_t[:, dotd.t-1]
+
+        phi_star_i_j = np.zeros((M, M))
+        total_score = A_k_x_t * is_connectd_matrix
+        while(np.sum(np.sum(total_score)) != 0):
+
+            # Arg_value = np.max(total_score, 0)
+            # Arg_ID    = np.argmax(total_score, 0)
+            # sate_selection = np.argmax(Arg_value)
+            # satellite = Arg_ID(sate_selection)
+            sate_selection = np.argmax( np.max(total_score, 0) )
+            satellite = np.argmax(total_score, 0)[sate_selection]
+            if np.sum(phi_star_i_j[satellite,:]) < 4 and np.sum(phi_star_i_j[sate_selection,:]) < 4:
+                phi_star_i_j[satellite,sate_selection] = is_connectd_matrix[satellite,sate_selection]
+                phi_star_i_j[sate_selection,satellite] = is_connectd_matrix[sate_selection,satellite]
+
+            total_score[satellite,sate_selection] = 0
+            total_score[sate_selection,satellite] = 0
+    
+        for k in range(M):
+            Obj_cap = phi_star_i_j[k,:]*throughput_matrix[k,:]/S_max_t
+            Obj_Laten = phi_star_i_j[k,:]*(1-(latency_matrix[k,:]/L_max_t))
+            Obj_LChurn = phi_star_i_j[k,:]*dotd.phi_i_j_t[k,:, dotd.t-1]/4
+            dotd.PI_i_t[k, dotd.t] = np.sum(dotd.w1*Obj_cap+dotd.w2*Obj_Laten+dotd.w3*Obj_LChurn+phi_star_i_j[k,:]*dotd.PI_i_t[k, dotd.t-1])/4
+
+
+        dotd.phi_i_j_t[:,:, dotd.t] = phi_star_i_j
+
+        for i in range(M):
+            for j in range(M):
+                connectivity_matrix[i][j] = phi_star_i_j[i, j]
+
+        with open("phi_i_j_0", "wb") as f:
+
+            pkl.dump(phi_star_i_j, f)
+        # for i in range(M):
+        #     for j in range(M):
+        #         s1 = satellites_by_index[i]
+        #         s2 = satellites_by_index[j]
+        #         if s1 != s2 and is_isl_connected(satellites_by_name[str(s1)], satellites_by_name[str(s1)], t):
+        #             alpha_i_j_t[i, j] = A_i_j_t[i, j] + dotd.PI_i_t[j, dotd.t-1]
+        
+        # phi_star_i_j = np.zeros((M, M))
+        # for i in range(M):
+        #     if np.sum(phi_star_i_j[i, :]) < 4:
+        #         idx_of_smallest = np.argsort(alpha_i_j_t[i, :])
+        #         for l in idx_of_smallest:
+        #             if np.sum(phi_star_i_j[l, :]) < 4:
+        #                 phi_star_i_j[i, l] = 1
+        #                 phi_star_i_j[l, i] = 1
+        #                 if np.sum(phi_star_i_j[i, :]) >= 4:
+        #                     break
+        
+        # pi_i_t = np.zeros((M))
+        # for i in range(M):
+        #     for j in range(M):
+        #         if i != j:
+        #             pi_i_t[i] += 1/4*(phi_star_i_j[i, j])*(A_i_j_t[i, j] + dotd.PI_i_t[j, dotd.t-1])
+
+        # if dotd.t < dotd.T:
+        #     dotd.PI_i_t[:, dotd.t] = pi_i_t
+        #     dotd.phi_i_j_t[:, :, dotd.t] = phi_star_i_j
+        # for i in range(M):
+        #     for j in range(M):
+        #         connectivity_matrix[i][j] = phi_star_i_j[i, j]
+
+
+    elif isl_config == "PLUS_GRID":
         for i in range(len(satellites_sorted_in_orbits)):
             # Get the number of satellites in the current orbit
             n_sats_per_orbit = len(satellites_sorted_in_orbits[i])
@@ -520,7 +619,7 @@ def mininet_add_GSLs_parallel(
     """
     
     # Calculate maximum GSL length
-    max_gsl_length_m = calc_max_gsl_length(main_configurations)
+    # max_gsl_length_m = calc_max_gsl_length(main_configurations)
     max_gsl_length_m = 2500000
 
     # Check if max GSL length is valid
@@ -803,6 +902,198 @@ def M_gs_sat_association_criteria_BasedOnDistance(
 
 # removed M_gs_sat_association_criteria_BasedOnDistance_alan, as it was not being used in any file or function
 
+from concurrent.futures import ProcessPoolExecutor
+
+def calculate_distances_chunk(start, end, satellites_by_index, satellites_by_name, t):
+    """
+    Worker function to calculate part of the distance matrix for rows from `start` to `end`.
+    """
+    M = len(satellites_by_index)
+    chunk_distance_matrix = np.zeros((end - start, M))
+    
+    for i in range(start, end):
+        sat_i = satellites_by_name[str(satellites_by_index[i])]
+        for j in range(M):
+            if i != j:
+                sat_j = satellites_by_name[str(satellites_by_index[j])]
+                chunk_distance_matrix[i - start, j] = distance_between_two_satellites(sat_i, sat_j, t)
+    
+    return start, end, chunk_distance_matrix
+
+def parallel_distance_matrix(satellites_by_index, satellites_by_name, t, num_workers=4):
+    M = len(satellites_by_index)
+    distance_matrix = np.zeros((M, M))
+    
+    # Define the chunk size based on the number of workers
+    chunk_size = M // num_workers
+    futures = []
+    
+    # Use ProcessPoolExecutor to parallelize the computation
+    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+        for worker_id in range(num_workers):
+            start = worker_id * chunk_size
+            end = M if worker_id == num_workers - 1 else (worker_id + 1) * chunk_size
+            futures.append(executor.submit(calculate_distances_chunk, start, end, satellites_by_index, satellites_by_name, t))
+        
+        # Collect results
+        for future in futures:
+            start, end, chunk_distance_matrix = future.result()
+            distance_matrix[start:end, :] = chunk_distance_matrix
+    
+    return distance_matrix
+
+import pickle as pkl
+
+def calculate_link_charateristics3(satellites_by_index,  satellites_by_name, t):
+
+    channelFreq_isls = 37.0  # GHz
+    polarization_loss = 4.5  # dBi
+    misalignment_attenuation_losses = 0.5  # dB
+    satellite_eirp = 80.9  # dBm
+    satellite_receive_antenna_gain = 40.0  # dBi
+    channel_bandwidth = 12000  # MHz
+    c = 299792458.0  # speed of light in m/s
+    boltzmann_constant = 1.38064852e-23  # Boltzmann constant
+
+    f = open("./distance_gen.pkl", "rb")
+    distance_matrix = pkl.load(f)
+    latency_matrix = (distance_matrix / c) * 1000
+    f.close()
+
+
+    fspl_matrix = 20 * np.log10(distance_matrix) + 20 * np.log10(channelFreq_isls * 1e9) - 147.55
+
+    # Received Signal Strength (RSS) in dBm
+    rss_dBm_matrix = satellite_eirp - 2 + satellite_receive_antenna_gain - fspl_matrix - polarization_loss - misalignment_attenuation_losses - 1.0
+
+    # RSS in Watts
+    rss_watt_matrix = 10 ** ((rss_dBm_matrix - 30) / 10)
+
+    # Noise power in Watts (200 Kelvin as system noise temperature)
+    noise_watt = 200 * boltzmann_constant * channel_bandwidth * 1e6
+
+    # Signal-to-Noise Ratio (SNR)
+    snr_matrix = rss_watt_matrix / noise_watt
+
+    # Channel Capacity using Shannon's theorem, in Mbps
+    capacity_matrix = channel_bandwidth * np.log2(1 + snr_matrix) / 1e3 #TODO: 1e6 is True I guess
+
+    # Handle infinite capacity values (set to 0)
+    capacity_matrix[np.isinf(capacity_matrix)] = 0
+
+    return {
+                "latency_matrix": latency_matrix.tolist(),
+                "throughput_matrix": capacity_matrix.tolist()
+            }
+
+def calculate_link_charateristics2(satellites_by_index,  satellites_by_name, t):
+
+    c = 299792458.0  # speed of light in m/s
+    f = open("./distance.pkl", "rb")
+    distance_matrix = pkl.load(f)
+    latency_matrix = (distance_matrix / c) * 1000
+    f.close()
+
+    f = open("./bw.pkl", "rb")
+    bw = pkl.load(f)
+    f.close()
+
+    return {
+                "latency_matrix": latency_matrix.tolist(),
+                "throughput_matrix": bw
+            }
+
+
+def calculate_link_charateristics(
+                                                satellites_by_index, 
+                                                satellites_by_name, 
+                                                t
+                                                ):
+    """
+    Calculates latency and throughput matrices for the network defined by the given connectivity matrix
+
+    Args:
+        connectivity_matrix (list): 2D matrix representing the network connectivity between satellites, as well as ground stations
+        satellites_by_index (dict): satellites sorted by index
+        satellites_by_name (dict): satellites sorted by name
+        ground_stations (dict): list of ground stations
+        t (datetime): time corresponding to current satellite positions
+        
+    Returns:
+        latency_matrix (??): ??
+        throughput_matrix (??): ??
+
+    """
+
+
+    matrix_size = len(satellites_by_index)
+    channelFreq_isls = 37.0  # GHz
+    polarization_loss = 4.5  # dBi
+    misalignment_attenuation_losses = 0.5  # dB
+    satellite_eirp = 80.9  # dBm
+    satellite_receive_antenna_gain = 40.0  # dBi
+    channel_bandwidth = 12000  # MHz
+    c = 299792458.0  # speed of light in m/s
+    boltzmann_constant = 1.38064852e-23  # Boltzmann constant
+
+    # Initialize distance matrix using a function that calculates distances between satellites
+    
+    M = len(satellites_by_index)
+    # print("here")
+    # distance_matrix = parallel_distance_matrix(satellites_by_index, satellites_by_name, t, num_workers=1000)
+    # print("done")
+    distance_matrix = np.zeros((matrix_size, matrix_size))
+    for i in range(M):
+        for j in range(M):
+            if i != j:
+                distance_matrix[i, j] = distance_between_two_satellites(
+                    satellites_by_name[str(satellites_by_index[i])],
+                    satellites_by_name[str(satellites_by_index[j])],
+                    t
+                )
+
+    f = open("./distance.pkl", "wb")
+    pkl.dump(distance_matrix, f)
+    f.close()
+    print("done")
+    # Latency calculation: (distance / speed of light) * 1000 (to convert to ms)
+    latency_matrix = (distance_matrix / c) * 1000
+
+    # Free Space Path Loss (FSPL) in dB
+    fspl_matrix = 20 * np.log10(distance_matrix) + 20 * np.log10(channelFreq_isls * 1e9) - 147.55
+
+    # Received Signal Strength (RSS) in dBm
+    rss_dBm_matrix = satellite_eirp - 2 + satellite_receive_antenna_gain - fspl_matrix - polarization_loss - misalignment_attenuation_losses - 1.0
+
+    # RSS in Watts
+    rss_watt_matrix = 10 ** ((rss_dBm_matrix - 30) / 10)
+
+    # Noise power in Watts (200 Kelvin as system noise temperature)
+    noise_watt = 200 * boltzmann_constant * channel_bandwidth * 1e6
+
+    # Signal-to-Noise Ratio (SNR)
+    snr_matrix = rss_watt_matrix / noise_watt
+
+    # Channel Capacity using Shannon's theorem, in Mbps
+    capacity_matrix = channel_bandwidth * np.log2(1 + snr_matrix) / 1e3 #TODO: 1e6 is True I guess
+
+    # Handle infinite capacity values (set to 0)
+    capacity_matrix[np.isinf(capacity_matrix)] = 0
+
+    throughput_matrix = capacity_matrix.tolist()
+    latency_matrix = latency_matrix.tolist()
+
+    f = open("./bw.pkl", "wb")
+    pkl.dump(throughput_matrix, f)
+    f.close()
+    print("done2")
+
+    # Return latency and throughput matrices
+    return {
+                "latency_matrix": latency_matrix,
+                "throughput_matrix": throughput_matrix
+            }
+
 def calculate_link_charateristics_for_gsls_isls(
                                                 connectivity_matrix, 
                                                 satellites_by_index, 
@@ -837,15 +1128,19 @@ def calculate_link_charateristics_for_gsls_isls(
     number_of_users_per_cell = 5.0
     density = 1.0/float(number_of_users_per_cell)
 
+
+    # ISL between two satellites
+    tmp_ = calculate_link_charateristics(satellites_by_index, satellites_by_name, t)
+    a, b = tmp_["latency_matrix"], tmp_["throughput_matrix"]
+    for i in range(len(satellites_by_index)):
+        for j in range(len(satellites_by_index)):
+            latency_matrix[i][j] = a[i][j]
+            throughput_matrix[i][j] = b[i][j]
+
     # Loop through the connectivity matrix to calculate latency and throughput
     for i in range(len(connectivity_matrix)):
         for j in range(len(connectivity_matrix[i])):
-            # ISL between two satellites
-            if connectivity_matrix[i][j] == 1 and i < len(satellites_by_index) and j < len(satellites_by_index):
-                distance_meters             = distance_between_two_satellites(satellites_by_name[str(satellites_by_index[i])], satellites_by_name[str(satellites_by_index[j])], t)
-                latency_matrix[i][j]        = ((distance_meters)/299792458.0)*1000                                           #speed of light
-                throughput_matrix[i][j]     = 500            #20Gbps
-
+            
             # GSL between ground station and satellite
             if connectivity_matrix[i][j] == 1 and i >= len(satellites_by_index) and j < len(satellites_by_index):
                 distance_meters             = distance_between_ground_station_satellite(ground_stations[i-len(satellites_by_index)], satellites_by_name[str(satellites_by_index[j])], t)

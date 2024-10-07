@@ -3,17 +3,17 @@ import matplotlib.pyplot as plt
 
 # Sample ping data (you can replace this with reading from a file)
 ping_data = """
-64 bytes from 12.0.24.178: icmp_seq=1 ttl=61 time=6.81 ms
-64 bytes from 12.0.24.178: icmp_seq=2 ttl=61 time=4.02 ms
-64 bytes from 12.0.24.178: icmp_seq=3 ttl=61 time=4.43 ms
-64 bytes from 12.0.24.178: icmp_seq=4 ttl=61 time=3.89 ms
-64 bytes from 12.0.24.178: icmp_seq=5 ttl=61 time=3.34 ms
-64 bytes from 12.0.24.178: icmp_seq=6 ttl=61 time=4.53 ms
-64 bytes from 12.0.24.178: icmp_seq=7 ttl=61 time=3.96 ms
-64 bytes from 12.0.24.178: icmp_seq=8 ttl=61 time=4.02 ms
-64 bytes from 12.0.24.178: icmp_seq=9 ttl=61 time=3.71 ms
-64 bytes from 12.0.24.178: icmp_seq=10 ttl=61 time=3.69 ms
-64 bytes from 12.0.24.178: icmp_seq=11 ttl=61 time=3.46 ms
+64 bytes from 12.0.119.50: icmp_seq=1 ttl=49 time=3.31 ms
+64 bytes from 12.0.119.50: icmp_seq=2 ttl=49 time=1.69 ms
+64 bytes from 12.0.119.50: icmp_seq=3 ttl=49 time=1.70 ms
+64 bytes from 12.0.119.50: icmp_seq=4 ttl=49 time=2.64 ms
+64 bytes from 12.0.119.50: icmp_seq=5 ttl=49 time=1.72 ms
+64 bytes from 12.0.119.50: icmp_seq=6 ttl=49 time=2.17 ms
+64 bytes from 12.0.119.50: icmp_seq=7 ttl=49 time=2.67 ms
+64 bytes from 12.0.119.50: icmp_seq=8 ttl=49 time=2.37 ms
+64 bytes from 12.0.119.50: icmp_seq=9 ttl=49 time=2.70 ms
+64 bytes from 12.0.119.50: icmp_seq=10 ttl=49 time=2.80 ms
+64 bytes from 12.0.119.50: icmp_seq=11 ttl=49 time=1.66 ms
 """
 
 # Function to parse the ping data and extract icmp_seq and time values

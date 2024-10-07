@@ -4,7 +4,7 @@ constellation:
     shell1:
         name: shell1
         # orbits: 9
-        orbits: 9
+        orbits: 72
         sat_per_orbit: 8
         altitude: 1500
         elevation_angle: 30
@@ -12,7 +12,7 @@ constellation:
     topology:
         association_criteria_GSL: BASED_ON_DISTANCE_ONLY_MININET
         ISL: grid
-        association_criteria_ISL: PLUS_GRID
+        association_criteria_ISL: DOTD
     routing:
         algorithm: static_latency
         ip_range: 12.0.0.0
@@ -21,12 +21,12 @@ constellation:
         other_constellation_ip_range: 11.0.0.0
 
 ground_stations:
-    gs_file: /media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/mobility/gs.txt  #../mobility/ground_stations_experiments.txt
+    gs_file: /home/farzad/repos/SimLEO_MConstellations/mobility/gs.txt  #../mobility/ground_stations_experiments.txt
 
 simulation:
-    start_time: 2024,01,19,17,0,1
-    length: 2
-    step: 1
+    start_time: 2024,10,03,04,05,32
+    length: 1
+    step: 30
     debug: 1
 
 application:
@@ -35,7 +35,7 @@ application:
     destination: gs1
     duration: 30
     congestion_control: cubic
-    result_out: /media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/analysis/metrics/GS0_GS1_ping.txt
+    result_out: /home/farzad/repos/SimLEO_MConstellations/output/analysis/metrics/GS0_GS1_ping.txt
     background_traffic: no
     tcpdump: no
 
@@ -46,6 +46,6 @@ resiliency:
   e_timestamps: ["2022,12,30,14,1,20", "2022,12,30,14,1,20"]
 
 data_n_results:
-    connectivity_matrix: /media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/connectivity_matrix/starlink/
-    routing: /media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/routing/starlink/
-    simulation_results: /media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/general/starlink
+    connectivity_matrix: /home/farzad/repos/SimLEO_MConstellations/output/connectivity_matrix/starlink/
+    routing: /home/farzad/repos/SimLEO_MConstellations/output/routing/starlink/
+    simulation_results: /home/farzad/repos/SimLEO_MConstellations/output/general/starlink

@@ -138,17 +138,17 @@ def get_orbital_planes_classifications(
         if constellation == "starlink":
             
             # Inclination of Starlink shell 1 should be 53.0 degrees
-            # if float(tle_second_line[2]) < (orbits_inclination+0.1) and float(tle_second_line[2]) >= (orbits_inclination):
+            if float(tle_second_line[2]) < (orbits_inclination+0.1) and float(tle_second_line[2]) >= (orbits_inclination):
                 
                 # Store TLE data in dump_orbital_data
-            dump_orbital_data["Epoch"].append(tle_first_line[3])
-            dump_orbital_data["Satellites"].append(Lines[i].strip())
-            dump_orbital_data["Inclination"].append(tle_second_line[2])
-            dump_orbital_data["RAAN"].append(tle_second_line[3])
-            dump_orbital_data["ecc"].append(tle_second_line[4])
-            dump_orbital_data["aop"].append(tle_second_line[5])
-            dump_orbital_data["Mean anomaly"].append(tle_second_line[6])
-            dump_orbital_data["Mean motion"].append(tle_second_line[7])
+                dump_orbital_data["Epoch"].append(tle_first_line[3])
+                dump_orbital_data["Satellites"].append(Lines[i].strip())
+                dump_orbital_data["Inclination"].append(tle_second_line[2])
+                dump_orbital_data["RAAN"].append(tle_second_line[3])
+                dump_orbital_data["ecc"].append(tle_second_line[4])
+                dump_orbital_data["aop"].append(tle_second_line[5])
+                dump_orbital_data["Mean anomaly"].append(tle_second_line[6])
+                dump_orbital_data["Mean motion"].append(tle_second_line[7])
     
     # Collect RAAN values in data dump
     list_of_values = [-1 for c in range(len(dump_orbital_data["RAAN"]))]

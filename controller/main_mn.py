@@ -29,34 +29,33 @@ import topology.visualize_topology as vt
 
 def main():
     
-
-
     # ===========================================================================================================
     # ========================================== CONFIGURATION ==================================================
     # ===========================================================================================================
 
-
+    old_connectivity_matrix = None
     # Constants and timescale
     N = 3   # This is a constant value -- it's unclear what it represents
     ts = load.timescale()  # Load a timescale object from the Skyfield API.
 
     # Configuration and TLE data
     main_configurations = parse_config_file_yml(".","starlink_config.yml")  # Parse the main configurations from the YAML file.
-    path_of_recent_TLE = get_recent_TLEs_using_datetime("../utils/", main_configurations["simulation"]["start_time"], main_configurations["constellation"]["operator"])  # Get the path of the most recent TLE file.
-    # path_of_recent_TLE = "/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/utils/fake_TLE_generation/TLE_fake_1707853243"
-    print("Recent TLE path: ", path_of_recent_TLE)  # Print the path of the recent TLE file.
+    # path_of_recent_TLE = get_recent_TLEs_using_datetime("../utils/", main_configurations["simulation"]["start_time"], main_configurations["constellation"]["operator"])  # Get the path of the most recent TLE file.
+    # path_of_recent_TLE = "/home/farzad/repos/SimLEO_MConstellations/utils/fake_TLE_generation/TLE_fake_1707853243"
+    # print("Recent TLE path: ", path_of_recent_TLE)  # Print the path of the recent TLE file.
 
     # Satellite data
-    # satellites = load.tle_file("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1")  # Load the satellites from the TLE file.
-    satellites = load.tle_file(path_of_recent_TLE)  # Load the satellites from the TLE file.
+    # satellites = load.tle_file("/home/farzad/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1")  # Load the satellites from the TLE file.
+    satellites = load.tle_file("/home/farzad/repos/SimLEO_MConstellations/tles/gp.txt")  # Load the satellites from the TLE file.
     satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}  # Create a dictionary of satellites by name.
     satellites_by_index = {}  # Initialize an empty dictionary for satellites by index.
 
     # Orbital data
-    orbital_data = get_orbital_planes_classifications(path_of_recent_TLE, main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
+    orbital_data = get_orbital_planes_classifications("/home/farzad/repos/SimLEO_MConstellations/tles/gp.txt", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
+    # orbital_data = get_orbital_planes_classifications("/home/farzad/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
 
     # Arranging satellites
-    arranged_sats = arrange_satellites("/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, main_configurations["simulation"]["start_time"] ,satellites_by_index, path_of_recent_TLE.split("_")[2])  # Arrange the satellites in the orbits.
+    arranged_sats = arrange_satellites("/home/farzad/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, main_configurations["simulation"]["start_time"] ,satellites_by_index, str(int(time_timestamp)))  # Arrange the satellites in the orbits.
     satellites_by_index = arranged_sats["satellites by index"]  # Update the dictionary of satellites by index.
 
     # Ground station data
@@ -85,9 +84,7 @@ def main():
     
 
     # Begin execution of the simulation
-    while sim_timeCount >= 2:
-        # Increment the simulation time by the step size specified in the configuration.
-        increments += main_configurations["simulation"]["step"]
+    while sim_timeCount >= 1:
 
         # Split the start time from the configuration into year, month, day, hour, minute, and second.
         year,month,day,hour,minute,second = main_configurations["simulation"]["start_time"].split(",")[0], main_configurations["simulation"]["start_time"].split(",")[1], main_configurations["simulation"]["start_time"].split(",")[2], main_configurations["simulation"]["start_time"].split(",")[3], main_configurations["simulation"]["start_time"].split(",")[4], main_configurations["simulation"]["start_time"].split(",")[5]
@@ -101,18 +98,18 @@ def main():
         time_timestamp  = convert_time_utc_to_unix(time_utc_inc)
         
         # If the most recent TLE file for the current timestamp is different from the previously loaded TLE file,
-        if get_recent_TLEs_using_timestamp("../utils/", time_timestamp, main_configurations["constellation"]["operator"]) != path_of_recent_TLE:
+        # if get_recent_TLEs_using_timestamp("../utils/", time_timestamp, main_configurations["constellation"]["operator"]) != path_of_recent_TLE:
             
-            # Update the path of the most recent TLE file.
-            path_of_recent_TLE              = get_recent_TLEs_using_timestamp("../utils/", time_timestamp, main_configurations["constellation"]["operator"])
+        #     # Update the path of the most recent TLE file.
+        #     path_of_recent_TLE              = get_recent_TLEs_using_timestamp("../utils/", time_timestamp, main_configurations["constellation"]["operator"])
             
-            # Reload the TLE data.
-            reloaded_vars                   = reload_tles(path_of_recent_TLE)
+        #     # Reload the TLE data.
+        #     reloaded_vars                   = reload_tles(path_of_recent_TLE)
             
-            # Update the satellite data.
-            satellites_by_name              = reloaded_vars["satellites_by_name"]
-            satellites_by_index             = reloaded_vars["satellites_by_index"]
-            num_of_satellites               = reloaded_vars["num_of_satellites"]
+        #     # Update the satellite data.
+        #     satellites_by_name              = reloaded_vars["satellites_by_name"]
+        #     satellites_by_index             = reloaded_vars["satellites_by_index"]
+        #     num_of_satellites               = reloaded_vars["num_of_satellites"]
 
 	    # Calculate the size of the connectivity matrix.
         conn_mat_size           = num_of_satellites + num_of_ground_stations
@@ -131,7 +128,7 @@ def main():
         # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
         # This block of code only executes for the first run of the simulator.
         # ||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
-        if increments == main_configurations["simulation"]["step"]:
+        if increments == main_configurations["simulation"]["step"]-1 or old_connectivity_matrix is None:
            
             # Get the ground station-satellite pairs from the connectivity matrix.
             gs_statellite_pair  = get_gs_sat_pairs(satnat_topology_change["connectivity_matrix"], num_of_satellites)
@@ -148,7 +145,7 @@ def main():
                 exit()
 
             # Create a new file to write the links.
-            absolute_path   = "/media/farzad/Fast/PhD/03.Term3/repos/SimLEO_MConstellations/output/general/starlink/"
+            absolute_path   = "/home/farzad/repos/SimLEO_MConstellations/output/general/starlink/"
             file            = open(absolute_path+"links.txt", 'w')
             
             # ************************************************************
@@ -240,6 +237,8 @@ def main():
 
         # Decrement the simulation time count.
         sim_timeCount -= 1
+        # Increment the simulation time by the step size specified in the configuration.
+        increments += main_configurations["simulation"]["step"]
 
     
     # ===========================================================================================================

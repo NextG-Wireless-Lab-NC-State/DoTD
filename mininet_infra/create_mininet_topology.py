@@ -279,7 +279,7 @@ class sat_network(Topo):
                     if i not in physical_sats_index and j not in physical_sats_index:
                         lt = link_latency[i][j]
                         # print lt#delay=str(lt)+'ms'
-                        self.addLink(sat_list[i], sat_list[j], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'sat'+str(j)+'-eth'+str(sat_intf_count[j]), cls=TCLink, delay=str(0.005)+'ms', bw=link_throughput[i][j])
+                        self.addLink(sat_list[i], sat_list[j], intfname1 = 'sat'+str(i)+'-eth'+str(sat_intf_count[i]), inftname2 = 'sat'+str(j)+'-eth'+str(sat_intf_count[j]), cls=TCLink, delay=str(lt)+'ms', bw=link_throughput[i][j])
                         links.append('sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+'sat'+str(j)+'-eth'+str(sat_intf_count[j]))
                         # print 'sat'+str(i)+'-eth'+str(sat_intf_count[i])+":"+'sat'+str(j)+'-eth'+str(sat_intf_count[j])
 

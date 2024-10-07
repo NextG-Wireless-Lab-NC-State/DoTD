@@ -278,7 +278,8 @@ def get_optimal_route(satellites, ground_stations, connectivity_matrix, source, 
                 mega_constellation_graph.add_edge(i, j, weight=1) # Add an edge between the nodes with a weight of 1 (latency[i][j] - starlink, 1 - hopcount oneweb) (VERIFY)
 
     # Use Bellman-Ford Alg.
-    _, optimal_path, _ = bf.bellman_ford(mega_constellation_graph, source=source, target=destination, weight="weight") # Perform Bellman-Ford algorithm to find the shortest path from source to target
+    # _, optimal_path, _ = bf.bellman_ford(mega_constellation_graph, source=source, target=destination, weight="weight") # Perform Bellman-Ford algorithm to find the shortest path from source to target
+    optimal_path = nx.dijkstra_path(mega_constellation_graph, source=source, target=destination, weight='weight')
 
     return optimal_path # Return the optimal path
 
