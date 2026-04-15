@@ -21,7 +21,7 @@ constellation:
         other_constellation_ip_range: 11.0.0.0
 
 ground_stations:
-    gs_file: /home/farzad/repos/SimLEO_MConstellations/mobility/gs.txt  #../mobility/ground_stations_experiments.txt
+    gs_file: ../mobility/gs.txt  #../mobility/ground_stations_experiments.txt
 
 simulation:
     start_time: 2024,10,03,04,05,32
@@ -35,7 +35,7 @@ application:
     destination: gs1
     duration: 30
     congestion_control: cubic
-    result_out: /home/farzad/repos/SimLEO_MConstellations/output/analysis/metrics/GS0_GS1_ping.txt
+    result_out: ../output/analysis/metrics/GS0_GS1_ping.txt
     background_traffic: no
     tcpdump: no
 
@@ -46,6 +46,6 @@ resiliency:
   e_timestamps: ["2022,12,30,14,1,20", "2022,12,30,14,1,20"]
 
 data_n_results:
-    connectivity_matrix: /home/farzad/repos/SimLEO_MConstellations/output/connectivity_matrix/starlink/
-    routing: /home/farzad/repos/SimLEO_MConstellations/output/routing/starlink/
-    simulation_results: /home/farzad/repos/SimLEO_MConstellations/output/general/starlink
+    connectivity_matrix: ../output/connectivity_matrix/starlink/
+    routing: ../output/routing/starlink/
+    simulation_results: ../output/general/starlink

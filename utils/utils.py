@@ -200,7 +200,7 @@ def save_topology(
     existing_links = []
 
     # Generate a new file
-    f = open("/home/farzad/repos/SimLEO_MConstellations/output/connectivity_matrix/"+main_configurations["constellation"]["operator"]+"/topology_"+timestamp+".txt", "a")
+    f = open("../output/connectivity_matrix/"+main_configurations["constellation"]["operator"]+"/topology_"+timestamp+".txt", "a")
 
     # Iterate over the connectivity matrix list
     for i in range(len(connectivity_matrix)):
@@ -236,7 +236,7 @@ def save_routes(
     """
 
     # Generate a new file
-    routes_log = open("/home/farzad/repos/SimLEO_MConstellations/output/routing/"+main_configurations["constellation"]["operator"]+"/routes_"+timestamp+".txt", "a")
+    routes_log = open("../output/routing/"+main_configurations["constellation"]["operator"]+"/routes_"+timestamp+".txt", "a")
     
     # Iterate over the routes list
     for route in routes:
@@ -265,7 +265,7 @@ def save_optimal_path(
     """
 
     # Generate a new file
-    optimal_log = open("/home/farzad/repos/SimLEO_MConstellations/output/analysis/optimal_routes/"+main_configurations["constellation"]["operator"]+"/best_path_"+timestap+".txt", "a")
+    optimal_log = open("../output/analysis/optimal_routes/"+main_configurations["constellation"]["operator"]+"/best_path_"+timestap+".txt", "a")
     
     # Iterate over the optimal path list
     for path in optimal_path:
@@ -633,7 +633,7 @@ def arrange_satellites(
     f.close()
 
     # New path for results
-    absolute_path = "/home/farzad/repos/SimLEO_MConstellations/output/general/starlink/"
+    absolute_path = "../output/general/starlink/"
    
     # Generate new file for sorted satellites in their orbits
     file = open(absolute_path+"orbits_satellites.txt", 'w')
@@ -691,7 +691,7 @@ def reload_tles(
     orbital_data  = get_orbital_planes_classifications(path_of_recent_TLE, main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
     
     # Arrange satellites by index and within their sorted orbits
-    arranged_sats = arrange_satellites("/home/farzad/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
+    arranged_sats = arrange_satellites("../output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
     
     # Split the information based on arranged indicies and sortment
     satellites_by_index = arranged_sats["satellites by index"]

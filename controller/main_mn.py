@@ -41,21 +41,21 @@ def main():
     # Configuration and TLE data
     main_configurations = parse_config_file_yml(".","starlink_config.yml")  # Parse the main configurations from the YAML file.
     # path_of_recent_TLE = get_recent_TLEs_using_datetime("../utils/", main_configurations["simulation"]["start_time"], main_configurations["constellation"]["operator"])  # Get the path of the most recent TLE file.
-    # path_of_recent_TLE = "/home/farzad/repos/SimLEO_MConstellations/utils/fake_TLE_generation/TLE_fake_1707853243"
+    # path_of_recent_TLE = "../utils/fake_TLE_generation/TLE_fake_1707853243"
     # print("Recent TLE path: ", path_of_recent_TLE)  # Print the path of the recent TLE file.
 
     # Satellite data
-    # satellites = load.tle_file("/home/farzad/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1")  # Load the satellites from the TLE file.
-    satellites = load.tle_file("/home/farzad/repos/SimLEO_MConstellations/tles/gp.txt")  # Load the satellites from the TLE file.
+    # satellites = load.tle_file("../controller/starlink_tles_to_use_v1")  # Load the satellites from the TLE file.
+    satellites = load.tle_file("../tles/gp.txt")  # Load the satellites from the TLE file.
     satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}  # Create a dictionary of satellites by name.
     satellites_by_index = {}  # Initialize an empty dictionary for satellites by index.
 
     # Orbital data
-    orbital_data = get_orbital_planes_classifications("/home/farzad/repos/SimLEO_MConstellations/tles/gp.txt", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
-    # orbital_data = get_orbital_planes_classifications("/home/farzad/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
+    orbital_data = get_orbital_planes_classifications("../tles/gp.txt", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
+    # orbital_data = get_orbital_planes_classifications("../controller/starlink_tles_to_use_v1", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])  # Get the orbital data and classify the orbital planes.
 
     # Arranging satellites
-    arranged_sats = arrange_satellites("/home/farzad/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, main_configurations["simulation"]["start_time"] ,satellites_by_index, str(int(time_timestamp)))  # Arrange the satellites in the orbits.
+    arranged_sats = arrange_satellites("../output/", orbital_data, satellites_by_name, main_configurations, main_configurations["simulation"]["start_time"] ,satellites_by_index, str(int(time_timestamp)))  # Arrange the satellites in the orbits.
     satellites_by_index = arranged_sats["satellites by index"]  # Update the dictionary of satellites by index.
 
     # Ground station data
@@ -145,7 +145,7 @@ def main():
                 exit()
 
             # Create a new file to write the links.
-            absolute_path   = "/home/farzad/repos/SimLEO_MConstellations/output/general/starlink/"
+            absolute_path   = "../output/general/starlink/"
             file            = open(absolute_path+"links.txt", 'w')
             
             # ************************************************************

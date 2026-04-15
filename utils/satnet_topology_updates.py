@@ -38,13 +38,13 @@ def main():
     print((y,mon,d,h,min,s))
 
     # Get the path of the most recent TLE file based on the timestamp
-    # path_of_recent_TLE  = get_recent_TLEs_using_timestamp("/home/farzad/repos/SimLEO_MConstellations/utils/", time_timestamp, main_configurations["constellation"]["operator"])
+    # path_of_recent_TLE  = get_recent_TLEs_using_timestamp("../utils/", time_timestamp, main_configurations["constellation"]["operator"])
     tle_timestamp = str(int(time_timestamp))
     print(tle_timestamp)
     # tle_timestamp       = path_of_recent_TLE.split("_")[-1]
 
     # Load the satellites from the TLE file
-    satellites = load.tle_file("/home/farzad/repos/SimLEO_MConstellations/tles/gp.txt")
+    satellites = load.tle_file("../tles/gp.txt")
     # satellites = load.tle_file(path_of_recent_TLE)
     # Create dictionaries of satellites by name and index
     satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
@@ -54,7 +54,7 @@ def main():
     ground_stations = read_gs(main_configurations["ground_stations"]["gs_file"])
 
     # Get the orbital data and arrange the satellites in the orbits
-    orbital_data  = get_orbital_planes_classifications("/home/farzad/repos/SimLEO_MConstellations/tles/gp.txt", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
+    orbital_data  = get_orbital_planes_classifications("../tles/gp.txt", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
     # orbital_data  = get_orbital_planes_classifications(path_of_recent_TLE, main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
     
     # same_orbit = np.zeros((len(satellites),len(satellites)))
@@ -75,7 +75,7 @@ def main():
     # end
     
     
-    arranged_sats = arrange_satellites("/home/farzad/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
+    arranged_sats = arrange_satellites("../output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
     satellites_by_index = arranged_sats["satellites by index"]
     satellites_sorted_in_orbits = arranged_sats["sorted satellite in orbits"]
 

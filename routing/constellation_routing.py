@@ -279,8 +279,9 @@ def get_optimal_route(satellites, ground_stations, connectivity_matrix, source, 
 
     # Use Bellman-Ford Alg.
     # _, optimal_path, _ = bf.bellman_ford(mega_constellation_graph, source=source, target=destination, weight="weight") # Perform Bellman-Ford algorithm to find the shortest path from source to target
+    print("Routing!")
     optimal_path = nx.dijkstra_path(mega_constellation_graph, source=source, target=destination, weight='weight')
-
+    print("done calculating routing")
     return optimal_path # Return the optimal path
 
 

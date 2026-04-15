@@ -51,7 +51,7 @@ def main():
     tle_timestamp       = path_of_recent_TLE.split("_")[2]
 
     # Load the satellites from the TLE file
-    # satellites = load.tle_file("/home/farzad/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1")
+    # satellites = load.tle_file("../controller/starlink_tles_to_use_v1")
     satellites = load.tle_file(path_of_recent_TLE)
     # Create dictionaries of satellites by name and index
     satellites_by_name = {sat.name.split(" ")[0]: sat for sat in satellites}
@@ -61,9 +61,9 @@ def main():
     ground_stations = read_gs(main_configurations["ground_stations"]["gs_file"])
 
     # Get the orbital data and arrange the satellites in the orbits
-    # orbital_data  = get_orbital_planes_classifications("/home/farzad/repos/SimLEO_MConstellations/controller/starlink_tles_to_use_v1", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
+    # orbital_data  = get_orbital_planes_classifications("../controller/starlink_tles_to_use_v1", main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
     orbital_data  = get_orbital_planes_classifications(path_of_recent_TLE, main_configurations["constellation"]["operator"], main_configurations["constellation"]["shell1"]["orbits"], main_configurations["constellation"]["shell1"]["sat_per_orbit"], main_configurations["constellation"]["shell1"]["inclination"])
-    arranged_sats = arrange_satellites("/home/farzad/repos/SimLEO_MConstellations/output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
+    arranged_sats = arrange_satellites("../output/", orbital_data, satellites_by_name, main_configurations, time_utc ,satellites_by_index, tle_timestamp)
     satellites_by_index = arranged_sats["satellites by index"]
     satellites_sorted_in_orbits = arranged_sats["sorted satellite in orbits"]
 
@@ -71,10 +71,10 @@ def main():
     num_of_satellites = len(orbital_data)
     num_of_ground_stations = len(ground_stations)
 
-    f_plus_grid  = read_data_to_numpy_array("/home/farzad/repos/SimLEO_MConstellations/Farzad/GRID+/best_path_2024_01_19_17_0_2.0.txt")
-    f_motif      = read_data_to_numpy_array("/home/farzad/repos/SimLEO_MConstellations/Farzad/Motif/best_path_2024_01_19_17_0_2.0.txt")
-    f_cross_grid = read_data_to_numpy_array("/home/farzad/repos/SimLEO_MConstellations/Farzad/XGRID/best_path_2024_01_19_17_0_2.0.txt") 
-    f_next = read_data_to_numpy_array("/home/farzad/repos/SimLEO_MConstellations/Farzad/DoTD/best_path_2024_01_19_17_0_1.0.txt")
+    f_plus_grid  = read_data_to_numpy_array("../Farzad/GRID+/best_path_2024_01_19_17_0_2.0.txt")
+    f_motif      = read_data_to_numpy_array("../Farzad/Motif/best_path_2024_01_19_17_0_2.0.txt")
+    f_cross_grid = read_data_to_numpy_array("../Farzad/XGRID/best_path_2024_01_19_17_0_2.0.txt") 
+    f_next = read_data_to_numpy_array("../Farzad/DoTD/best_path_2024_01_19_17_0_1.0.txt")
 
     sats_next = []
     for sat in f_next:

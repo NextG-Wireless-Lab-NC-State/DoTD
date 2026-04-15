@@ -324,10 +324,12 @@ def mininet_add_ISLs(
     # Check the ISL configuration (only one for the time being)
 
     if isl_config == "DOTD":
+        print("starting dotd")
         M = len(satellites_by_index)
         # M = 100
         dotd.step()
         link_characterstics = calculate_link_charateristics(satellites_by_index, satellites_by_name, t)
+        print("calculated link char")
         latency_matrix    = np.array(link_characterstics["latency_matrix"])
         throughput_matrix = np.array(link_characterstics["throughput_matrix"]) / 1000
         distance_matrix   = latency_matrix / 1000 * 299792458.0
@@ -378,6 +380,7 @@ def mininet_add_ISLs(
             for j in range(M):
                 connectivity_matrix[i][j] = phi_star_i_j[i, j]
 
+        print("dotd done")
         with open("phi_i_j_0", "wb") as f:
 
             pkl.dump(phi_star_i_j, f)
