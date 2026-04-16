@@ -1,3 +1,24 @@
+# Run DoTD Topology
+
+### Step.1:
+After installing requirements (tested on Python 3.7), first you need to generate the topology:
+```
+cd utils
+python ./satnet_topology_updates.py
+```
+You can change the configuration by editing controller/starlink_config.yml. Default config will generate thetopology based on DoTD algorithm. You can also try +GRID, or xGrid.
+In this step, you might need to manually create output directories where results are saved.
+
+If the number of satellites in the TLE file is large, the execution will take some time!
+
+### Step.2:
+After the topology is generated, you can run the mininet-based network emulator to get ping and iperf tests by running:
+```
+cd controller
+sudo python ./main_mn.py
+```
+Note that mininet requires sudo installation. Make sure you are using the correct python executable with the sudo command, where the requirements are installed.
+
 # Space Network Emulator
 ## Mininet-based LEO Mega-constellations Emulator
 
